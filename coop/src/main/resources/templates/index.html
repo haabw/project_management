@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- <title th:replace="~{layout/main :: title}">Welcome</title> --><!-- 레이아웃 inculde할 부분 -->
+</head>
+<body>
+    <!-- <div th:replace="~{layout/main :: content}"> -->
+        <div class="container mt-5">
+            <h2>Welcome to Coop!</h2>
+            <p>협조 서비스에 오신 것을 환영합니다.</p>
+            <div th:if="${session.user == null}">
+                <a href="logout" class="btn btn-primary me-2">로그아웃</a>
+            </div>
+            <div th:if="${session.user != null}">
+                <p th:text="'Hello, ' + ${session.user.nickname} + '!'"></p>
+                <div class="btn-group">
+                    <a href="/admin" class="btn btn-primary me-2">Admin</a>
+                    <a href="/chat" class="btn btn-primary me-2">Chat</a>
+                    <a href="/gantt" class="btn btn-primary me-2">Gantt</a>
+                    <a href="/mindmap" class="btn btn-primary">Mindmap</a>
+                </div>
+            </div>
+        </div>
+    <!-- </div> -->
+</body>
+</html>

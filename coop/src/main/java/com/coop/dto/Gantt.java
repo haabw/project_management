@@ -1,5 +1,5 @@
 package com.coop.dto;
 
-public class projectDTO {
+public class Gantt {
 
 }

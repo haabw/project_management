@@ -11,13 +11,23 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name="users")
 @Data
+@NoArgsConstructor(access = AccessLevel.PUBLIC)
 public class UserEntity {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name="id", updatable = false)
 	private int id;
+	
+	@Column(name="username")
 	private String username;
+	
+	@Column(name="password")
 	private String password;
+	
+	@Column(name="email")
 	private String email;
+	
+	@Column(name="nickname")
 	private String nickname;
 	
 	@Enumerated(EnumType.STRING)
@@ -32,5 +42,6 @@ public class UserEntity {
 	public enum Role {
 		ADMIN, USER
 	}
+
 	
 }

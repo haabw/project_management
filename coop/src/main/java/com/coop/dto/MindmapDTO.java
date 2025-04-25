@@ -1,5 +1,5 @@
 package com.coop.dto;
 
-public class ganttDTO {
+public class MindmapDTO {
 
 }
