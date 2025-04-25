@@ -1,0 +1,139 @@
+/* sidebar.css - 중간 사이드바 */
+.sidebar-middle {
+  min-width: 200px;
+  width: 260px;
+  max-width: 40vw;
+  background-color: white;
+  border-right: 1px solid #ddd;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.sidebar-middle.hidden {
+  display: none !important;
+}
+.sidebar-middle.floating {
+  position: absolute;
+  left: 64px;
+  top: 0;
+  height: 100vh;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  display: flex !important;
+}
+
+.resizer {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  cursor: ew-resize;
+  background-color: #b3dbc3;
+}
+
+.team-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+}
+
+.project-tab {
+  background-color: #f4f5f7;
+  padding: 0.75rem 1rem 1.25rem;
+  margin-bottom: 0.75rem;
+  border-radius: 12px;
+  position: relative;
+  border: 1px solid #e0e0e0;
+  font-size: 14px;
+  transition: background 0.2s;
+  overflow: visible;
+}
+.project-tab:hover {
+  background-color: #e7f9ee;
+}
+
+.dropdown-arrow {
+  font-size: 0.8rem;
+  color: #555;
+  cursor: pointer;
+}
+
+.project-details {
+  padding-top: 0.5rem;
+  font-size: 0.875rem;
+  color: #555;
+  display: none;
+}
+
+.add-project {
+  background-color: #6BCB77;
+  color: white;
+  padding: 0.5rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  margin-top: auto;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+.add-project:hover {
+  background-color: #57ae63;
+}
+
+.menu-group {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  display: flex;
+  gap: 10px;
+}
+
+.menu-dots {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  position: relative;
+}
+.menu-dots span {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  background-color: #555;
+  border-radius: 50%;
+}
+
+.project-actions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background-color: white;
+  border: 1px solid #ccc;
+  padding: 0.5rem;
+  border-radius: 8px;
+  margin-top: 4px;
+  display: none;
+  z-index: 10;
+}
+.project-actions div {
+  padding: 4px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.project-actions div:hover {
+  background-color: #f0f0f0;
+}

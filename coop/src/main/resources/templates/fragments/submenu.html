@@ -1,10 +1,12 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Insert title here</title>
-</head>
-<body>
+<aside th:fragment="submenu" class="sidebar-left" id="leftSidebar">
+	<div class="circle-icon position-relative">
+		🔔 <span
+			class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+			3 </span>
+	</div>
+	<div class="circle-icon">📅</div>
+	<div class="circle-icon mt-auto mb-3">⚙️</div>
 
-</body>
-</html>
+	<!-- 중간 사이드바 열기 버튼 (숨겨진 상태에서 보임) -->
+	<div class="open-toggle toggle-hover" id="openToggle">→</div>
+</aside>
