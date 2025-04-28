@@ -30,18 +30,10 @@ public class UserEntity {
 	@Column(name="nickname")
 	private String nickname;
 	
-	@Enumerated(EnumType.STRING)
-	private Role role;
-	
 	@Temporal(TemporalType.TIMESTAMP)
 	private LocalDateTime createdDate;
 	
 	@Temporal(TemporalType.TIMESTAMP)
 	private LocalDateTime modifiedDate;
-	
-	public enum Role {
-		ADMIN, USER
-	}
 
-	
 }
