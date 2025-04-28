@@ -1,10 +1,141 @@
 <!DOCTYPE html>
-<html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
 <head>
-<meta charset="UTF-8">
-<title>Insert title here</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>프로젝트 채팅</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <style>
+        body { font-family: sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; }
+        #chat-container {
+            max-width: 800px;
+            margin: 20px auto;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 100px); /* 화면 높이에 맞게 조정 */
+            overflow: hidden; /* 내부 스크롤 관리 */
+        }
+        h1 { text-align: center; color: #333; font-size: 1.5em; padding: 15px; margin: 0; border-bottom: 1px solid #eee;}
+        #chat-messages {
+            flex-grow: 1;
+            overflow-y: auto; /* 메시지가 많아지면 스크롤 */
+            padding: 15px;
+            list-style: none;
+            margin: 0;
+        }
+        #chat-messages li {
+            margin-bottom: 12px;
+            padding: 8px 12px;
+            border-radius: 15px;
+            max-width: 75%;
+            word-wrap: break-word; /* 긴 단어 줄바꿈 */
+            clear: both; /* float 해제 */
+        }
+        #chat-messages li span.sender {
+            font-weight: bold;
+            margin-right: 8px;
+            color: #555;
+            display: block; /* 이름은 위쪽에 표시 */
+            font-size: 0.9em;
+            margin-bottom: 3px;
+        }
+        #chat-messages li p.message-content {
+             margin: 0;
+             line-height: 1.4;
+        }
+        #chat-messages li small.timestamp {
+            font-size: 0.75em;
+            color: #999;
+            display: block;
+            text-align: right;
+            margin-top: 4px;
+        }
+        /* 내 메시지 스타일 */
+        #chat-messages li.my-message {
+            background-color: #DCF8C6; /* 연두색 배경 */
+            float: right; /* 오른쪽 정렬 */
+            margin-left: auto; /* 왼쪽 여백 자동 */
+        }
+        #chat-messages li.my-message small.timestamp { text-align: right; }
+
+        /* 다른 사용자 메시지 스타일 */
+        #chat-messages li.other-message {
+            background-color: #f1f0f0; /* 회색 배경 */
+            float: left; /* 왼쪽 정렬 */
+            margin-right: auto; /* 오른쪽 여백 자동 */
+        }
+         #chat-messages li.other-message small.timestamp { text-align: right; }
+
+        /* 시스템 메시지 스타일 (입장/퇴장 등) */
+        #chat-messages li.event-message {
+            background-color: transparent;
+            text-align: center;
+            color: #888;
+            font-style: italic;
+            font-size: 0.9em;
+            width: 100%;
+            max-width: 100%;
+            float: none;
+            margin: 10px 0;
+        }
+
+        #message-form {
+            display: flex;
+            padding: 15px;
+            border-top: 1px solid #eee;
+            background-color: #f9f9f9;
+        }
+        #message-input {
+            flex-grow: 1;
+            padding: 10px 15px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            margin-right: 10px;
+            font-size: 1em;
+        }
+        #message-input:disabled { background-color: #eee; }
+        #send-button {
+            padding: 10px 20px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            border-radius: 20px;
+            font-size: 1em;
+            transition: background-color 0.2s ease;
+        }
+        #send-button:hover { background-color: #0056b3; }
+        #send-button:disabled { background-color: #aaa; cursor: not-allowed; }
+        #connecting-status {
+            text-align: center;
+            color: #888;
+            padding: 10px;
+            font-size: 0.9em;
+            border-bottom: 1px solid #eee;
+        }
+    </style>
 </head>
 <body>
+    <div id="chat-wrapper"> <input type="hidden" id="project-id" th:value="${projectId}" />
+        <input type="hidden" id="user-id" th:value="${#authentication.principal.userId}"/> <input type="hidden" id="user-name" th:value="${#authentication.principal.username}"/> <div id="chat-container">
+            <h1><span th:text="${project?.name ?: '프로젝트'}">프로젝트 이름</span> 채팅</h1>
+            <div id="connecting-status">연결 중...</div>
+            <ul id="chat-messages">
+                </ul>
+            <form id="message-form" name="messageForm">
+                <input type="text" id="message-input" placeholder="메시지를 입력하세요..." autocomplete="off" disabled/>
+                <button type="submit" id="send-button" disabled>전송</button>
+            </form>
+        </div>
+
+    </div> <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+
+    <script th:src="@{/js/chat.js}"></script>
 
 </body>
 </html>
