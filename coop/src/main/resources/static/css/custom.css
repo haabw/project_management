@@ -1,0 +1,22 @@
+.btn-primary {
+    background-color: #0074D9;
+    border-color: #0074D9;
+}
+.btn-primary:hover {
+    background-color: #005bb5; /* 살짝 어두운 색상 */
+    border-color: #005bb5;
+}
+.btn-outline-primary {
+    color: #0074D9;
+    border-color: #0074D9;
+}
+.btn-outline-primary:hover {
+    background-color: #0074D9;
+    color: white;
+}
+.text-primary {
+    color: #0074D9 !important;
+}
+.bg-primary {
+    background-color: #0074D9 !important;
+}
