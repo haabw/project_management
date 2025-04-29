@@ -1,10 +1,36 @@
 <!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Insert title here</title>
-</head>
-<body>
-
-</body>
-</html>
+  <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+  <body>
+      <div th:fragment="sidebar">
+          <div class="sidebar">
+              <div class="sidebar-logo-container text-center py-3">
+                  <a href="/">
+                      <img src="/images/coop-logo.png" alt="COOP Logo" aria-label="COOP 펭귄 로고" class="sidebar-logo">
+                  </a>
+              </div>
+              <ul class="nav flex-column text-center">
+                  <li class="nav-item">
+                      <a class="nav-link" href="/notifications" title="알림">
+                          <i class="bi bi-bell"></i>
+                      </a>
+                  </li>
+                  <li class="nav-item">
+                      <a class="nav-link" href="/tasks" title="내 할 일">
+                          <i class="bi bi-check-circle"></i>
+                      </a>
+                  </li>
+                  <li class="nav-item mt-auto">
+                      <a class="nav-link" href="/settings" title="설정">
+                          <i class="bi bi-gear"></i>
+                      </a>
+                  </li>
+                  <li class="nav-item">
+                      <a class="nav-link text-danger" href="/auth/logout" title="로그아웃" sec:authorize="isAuthenticated()">
+                          <i class="bi bi-box-arrow-right"></i>
+                      </a>
+                  </li>
+              </ul>
+          </div>
+      </div>
+  </body>
+  </html>
