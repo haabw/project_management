@@ -1,0 +1,29 @@
+/* main.css - 공통 레이아웃 */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  height: 100vh;
+  overflow: hidden;
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #f4f5f7;
+}
+
+/* 전체 래퍼 */
+.sidebar-wrapper {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+}
+
+/* 메인 콘텐츠 영역 */
+.main-content {
+  flex-grow: 1;
+  background-color: white;
+  padding: 1rem;
+  transition: margin-left 0.3s ease;
+  overflow: auto;
+}
