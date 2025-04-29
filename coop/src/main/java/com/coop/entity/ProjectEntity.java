@@ -1,5 +1,6 @@
 package com.coop.entity;
 
+
 import lombok.NoArgsConstructor;
 import lombok.AccessLevel;
 import jakarta.persistence.*; // 어노테이션을 쓰위 위함
@@ -12,6 +13,14 @@ import java.time.LocalDateTime; // 시간
 @Getter // 롬북 어노테이션 필드값 얻기 위해
 @Entity
 @Table(name = "project")
+
+import lombok.Data;
+import jakarta.persistence.*;
+
+//프로젝트 데이터 
+//@Entity
+//@Table(name = "projects")
+//@Data
 public class ProjectEntity {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
