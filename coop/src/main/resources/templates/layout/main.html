@@ -1,17 +1,39 @@
 <!DOCTYPE html>
-<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
-    <!-- 공통 헤더 -->
-    <th:block th:replace="fragments/head :: head"></th:block>
-    <body>
-        <!-- 첫 번째 사이드바 -->
-        <th:block th:replace="fragments/sidebar :: sidebar"></th:block>
-        <!-- 두 번째 사이드바 -->
-        <th:block th:replace="fragments/submenu :: submenu(projects=${projects})"></th:block>
-        <!-- 본문 -->
-        <div class="main-content">
-            <th:block layout:fragment="content"></th:block>
-        </div>
-        <!-- 공통 스크립트 -->
-        <th:block th:replace="fragments/script :: script"></th:block>
-    </body>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	xmlns:sec="https://www.thymeleaf.org/extras/spring-security">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title layout:fragment="title">레이아웃</title>
+
+<link th:href="@{/css/bootstrap.min.css}" rel="stylesheet" />
+<link th:href="@{/css/main.css}" rel="stylesheet" />
+<link th:href="@{/css/submenu.css}" rel="stylesheet" />
+<link th:href="@{/css/sidebar.css}" rel="stylesheet" />
+</head>
+<body>
+	<div class="sidebar-wrapper">
+		<!-- 왼쪽 사이드바 -->
+		<th:block th:replace="~{fragments/submenu :: submenu}" />
+		<!-- 중간 사이드바 -->
+		<th:block th:replace="~{fragments/sidebar :: sidebar}" />
+		<!-- 메인 콘텐츠 영역 -->
+		<main layout:fragment="content" class="main-content">
+			<!-- 여기에 html의 layout:fragment="content" 부분으로 감싸진 내용이 들어감 -->
+		</main>
+	</div>
+	<script th:src="@{/js/main.js}"></script>
+	<script th:src="@{/js/submenu.js}"></script>
+	<script th:src="@{/js/sidebar.js}"></script>
+</body>
 </html>
+<!--  레이아웃을 적용할 페이지는  
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/main}">  이거 필수
+      
+    타이틀은 <title layout:fragment="title">Welcome to Coop!</title> 이렇게
+    내용은 content부분에  layout:fragment="content" 이 태그 넣기
+       -->
