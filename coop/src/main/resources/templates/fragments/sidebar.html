@@ -1,36 +1,32 @@
-<!DOCTYPE html>
-  <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-  <body>
-      <div th:fragment="sidebar">
-          <div class="sidebar">
-              <div class="sidebar-logo-container text-center py-3">
-                  <a href="/">
-                      <img src="/images/coop-logo.png" alt="COOP Logo" aria-label="COOP 펭귄 로고" class="sidebar-logo">
-                  </a>
-              </div>
-              <ul class="nav flex-column text-center">
-                  <li class="nav-item">
-                      <a class="nav-link" href="/notifications" title="알림">
-                          <i class="bi bi-bell"></i>
-                      </a>
-                  </li>
-                  <li class="nav-item">
-                      <a class="nav-link" href="/tasks" title="내 할 일">
-                          <i class="bi bi-check-circle"></i>
-                      </a>
-                  </li>
-                  <li class="nav-item mt-auto">
-                      <a class="nav-link" href="/settings" title="설정">
-                          <i class="bi bi-gear"></i>
-                      </a>
-                  </li>
-                  <li class="nav-item">
-                      <a class="nav-link text-danger" href="/auth/logout" title="로그아웃" sec:authorize="isAuthenticated()">
-                          <i class="bi bi-box-arrow-right"></i>
-                      </a>
-                  </li>
-              </ul>
-          </div>
-      </div>
-  </body>
-  </html>
+<div th:fragment="sidebar" class="sidebar-middle" id="middleSidebar">
+	<div class="team-header">
+		<div class="team-name">협조</div>
+		<div class="toggle-hover" id="closeToggle">←</div>
+	</div>
+
+	<div class="profile-box">
+		<div class="circle-icon">👤</div>
+		<span th:text="${username}">이름</span>
+	</div>
+
+	<div id="project-list" class="flex-grow-1">
+		<!-- 예시 프로젝트 탭 -->
+		<div class="project-tab">
+			프로젝트 1
+			<div class="menu-group">
+				<div class="dropdown-arrow">▼</div>
+				<div class="menu-dots" onclick="toggleActions(this)">
+					<span></span><span></span><span></span>
+					<div class="project-actions">
+						<div>수정</div>
+						<div>삭제</div>
+					</div>
+				</div>
+			</div>
+			<div class="project-details">Details here...</div>
+		</div>
+	</div>
+
+	<div class="add-project" onclick="showAddInput()">프로젝트 추가</div>
+	<div class="resizer" id="resizer"></div>
+</div>
