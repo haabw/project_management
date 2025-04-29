@@ -13,6 +13,8 @@ leftSidebar.addEventListener("mouseleave", () => {
     openToggle.style.display = "none";
   }
 });
+
+// 사이드바 열기 버튼
 openToggle.addEventListener("click", () => {
   middleSidebar.classList.remove("hidden", "floating");
   openToggle.style.display = "none";

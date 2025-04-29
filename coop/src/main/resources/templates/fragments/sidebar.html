@@ -4,10 +4,9 @@
 		<div class="toggle-hover" id="closeToggle">←</div>
 	</div>
 
-	<div
-		class="search-box d-flex align-items-center bg-light p-2 mb-3 rounded">
+	<div class="profile-box">
 		<div class="circle-icon">👤</div>
-		<span class="ms-2">이름 필요</span>
+		<span th:text="${username}">이름</span>
 	</div>
 
 	<div id="project-list" class="flex-grow-1">
@@ -26,7 +25,6 @@
 			</div>
 			<div class="project-details">Details here...</div>
 		</div>
-		<!-- 추가 탭 반복 가능 -->
 	</div>
 
 	<div class="add-project" onclick="showAddInput()">프로젝트 추가</div>

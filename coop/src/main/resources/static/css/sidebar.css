@@ -31,7 +31,7 @@
   bottom: 0;
   width: 5px;
   cursor: ew-resize;
-  background-color: #b3dbc3;
+  background-color: #0074D9;
 }
 
 .team-header {
@@ -43,10 +43,20 @@
   font-size: 16px;
 }
 
-.search-box {
+.profile-box {
   display: flex;
   align-items: center;
+  background-color: #fcf9fa;   
+  padding: 0.5rem;             
+  margin-bottom: 1rem;          
+  border-radius: 0.25rem;     
+  box-shadow: 0.5px 0.5px 0.5px 0.5px #0074D9
 }
+
+.profile-box .circle-icon {
+  margin-right: 0.5rem;         
+}
+
 
 .project-tab {
   background-color: #f4f5f7;
@@ -60,7 +70,7 @@
   overflow: visible;
 }
 .project-tab:hover {
-  background-color: #e7f9ee;
+  background-color: #0074D9;
 }
 
 .dropdown-arrow {
@@ -77,7 +87,7 @@
 }
 
 .add-project {
-  background-color: #6BCB77;
+  background-color: #0074D9;
   color: white;
   padding: 0.5rem 1rem;
   text-align: center;
@@ -87,7 +97,7 @@
   transition: background-color 0.2s ease;
 }
 .add-project:hover {
-  background-color: #57ae63;
+  background-color: #005bb5;
 }
 
 .menu-group {
