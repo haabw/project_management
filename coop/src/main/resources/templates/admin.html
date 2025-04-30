@@ -41,11 +41,12 @@
 	
 	<script th:inline="javascript">
 	/*<![CDATA[*/
-	var pendingIds  = /*[[${pendingUserIds}]]*/ [];
-	var approvedIds = /*[[${approvedUserIds}]]*/ [];
+	var pendingIds  = /*[[${pendingUserIds}]]*/ [];  //<!-- 대기 중인(초대받은) 유저의 ID 배열 -->
+	var approvedIds = /*[[${approvedUserIds}]]*/ []; // <!-- 이미 멤버로 승인된 유저의 ID 배열 -->
 	/*]]>*/
 	</script>
 	
+	<!-- 사이드 바 메뉴 -->
 	<div id="wrapper">
 	  <div id="sidebar-wrapper" class="bg-white border-end">
 	    <div class="sidebar-heading border-bottom p-3">관리자 메뉴</div>
@@ -63,9 +64,10 @@
 	      <button class="btn btn-primary" id="sidebarToggle">Toggle Menu</button>
 	    </nav>
 	
+	<!-- ADMIN 페이지 대시보드 그래프 -->
 	   <section th:if="${section=='dashboard'}">
   <h2>대시보드</h2>
-  <p>오늘 접속자: <strong th:text="${todayUv} + ' 명'">0 명</strong></p>
+  <p>오늘 접속자: <strong th:text="${todayUv} + ' 명'">0 명</strong></p>   <!-- /index로 갈 시 자동 카운팅 -->
   <h3>일일 접속자 통계</h3>
   <canvas id="uvChart" width="600" height="300"></canvas>
   <script th:inline="javascript">
@@ -97,13 +99,13 @@
     });
   </script>
 </section>
-	
+		<!-- ADMIN 팀원 관리 페이지 -->
 	    <section th:if="${section=='members'}">
 	      <h2>팀원 관리</h2>
-	      <button id="inviteButton" onclick="openInviteUserModal()">초대</button>
+	      <button id="inviteButton" onclick="openInviteUserModal()">초대</button> <!-- 우측 상단 초대 -->
 	      <table>
 	        <thead>
-	          <tr><th>닉네임</th><th>E-mail</th><th>생성일자</th><th>권한</th><th>관리</th></tr>
+	          <tr><th>닉네임</th><th>E-mail</th><th>생성일자</th><th>권한</th><th>관리</th></tr> <!-- 표기되는 표 -->
 	        </thead>
 	        <tbody>
 	          <tr th:each="u : ${users}">
@@ -121,6 +123,7 @@
 	      </table>
 	    </section>
 	
+	 	<!-- ADMIN 권한 설정 페이지 -->
 	    <section th:if="${section=='permissions'}">
 	      <h2>권한 설정</h2>
 	      <table>
@@ -135,6 +138,7 @@
 	            <td th:text="${u.role}">USER</td>
 	            <td>
 	              <div th:if="${(currentUserRole=='ADMIN' or (currentUserRole=='EDITOR' and u.role!='ADMIN')) and currentUserId != u.id}">
+	                <!-- 권한 설정 -->
 	                <select th:id="'roleSelect' + ${u.id}">
 	                  <option value="ADMIN" th:selected="${u.role=='ADMIN'}">ADMIN</option>
 	                  <option value="EDITOR" th:selected="${u.role=='EDITOR'}">EDITOR</option>
@@ -147,7 +151,7 @@
 	        </tbody>
 	      </table>
 	    </section>
-	
+			<!-- 채팅 이력 페이지 -->
 	    <section th:if="${section=='chat'}">
 	      <h2>채팅 이력</h2>
 	      <ul>
@@ -162,7 +166,7 @@
 	</div>
 	
 	<!-- 여기까지 HTML -->
-	<!-- 초대 모달 -->
+	<!-- 초대 모달창 -->
 	<div id="inviteModal" style="display:none; position:fixed; top:20%; left:30%; width:40%; background:white; padding:1rem; border:2px solid #333; z-index:1000; box-shadow:0 0 10px rgba(0,0,0,0.5);">
 	  <h2 style="text-align:center;">유저 초대하기</h2>
 	  <table style="width:100%; margin-top:1rem; border-collapse:collapse;">
@@ -192,7 +196,7 @@
 	  </ul>
 	</div>
 	
-	<!-- ✨ 스크립트 전체 -->
+	<!-- 멤버 초대 리스트 -->
 	<script th:inline="javascript">
 	function openInviteUserModal() {
 	  fetch('/admin/invite/users')
@@ -225,7 +229,7 @@
 	function closeInviteModal() {
 	  document.getElementById('inviteModal').style.display = 'none';
 	}
-	
+	<!-- 초대 전송 -->
 	function sendInvite(userId) {
 	  const projectId = /*[[${projectId}]]*/ 1;
 	  if (!confirm('정말 초대하시겠습니까?')) return;
@@ -237,7 +241,7 @@
 	  .then(r => { if (!r.ok) throw new Error(); alert('초대 완료!'); location.reload(); })
 	  .catch(() => alert('초대 실패'));
 	}
-	
+	//<!-- 권한 변경 -->
 	function submitChangeRole(event, userId) {
 	  const projectId = /*[[${projectId}]]*/ 1;
 	  const selectEl = document.getElementById('roleSelect' + userId);
@@ -252,6 +256,7 @@
 	  .catch(() => alert('권한 변경 실패'));
 	}
 	
+	//<!-- 추방 -->
 	function confirmKick(projectMemberId) {
 	  if (!confirm('정말로 이 사용자를 추방하시겠습니까?')) return;
 	  fetch('/admin/kick', {
@@ -263,6 +268,7 @@
 	  .catch(() => alert('추방 실패'));
 	}
 	
+	//<!-- 초대 수락 -->
 	function handleAcceptInvite(button) {
 	  const inviteId = button.getAttribute('data-invite-id');
 	  fetch('/admin/invite/accept', {
@@ -275,6 +281,7 @@
 	  .catch(() => alert('초대 수락 실패'));
 	}
 	
+	//<!-- 초대 거절 -->
 	function handleDeclineInvite(button) {
 	  const inviteId = button.getAttribute('data-invite-id');
 	  fetch('/admin/invite/decline', {

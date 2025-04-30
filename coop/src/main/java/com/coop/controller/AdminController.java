@@ -24,6 +24,11 @@ import java.util.stream.Collectors;
 
 import static com.coop.controller.MainController.TODAY_UV_COUNT;
 
+/**
+ * 관리자 페이지 전반을 처리하는 컨트롤러.
+ * - 대시보드, 팀원 관리, 권한 설정, 채팅 이력 보기
+ * - 프로젝트 초대, 수락/거절, 추방 기능
+ */
 @Controller
 @RequestMapping("/admin")
 public class AdminController {
@@ -45,11 +50,12 @@ public class AdminController {
             @RequestParam(value = "section", defaultValue = "dashboard") String section,
             @RequestParam(value = "projectId", required = false) Integer projectId,
             Model model
-    ) {
+    ) {  
+    	//현재 로그인 사용자 조회
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String currentUsername = auth.getName();
         Optional<UserEntity> optionalUser = userService.findByUsername(currentUsername);
-        if (optionalUser.isEmpty()) return "redirect:/login";
+        if (optionalUser.isEmpty()) return "redirect:/login"; //로그인 정보 없을시 /login으로
         UserEntity currentUser = optionalUser.get();
 
         // 자동 리디렉션 처리
@@ -68,31 +74,36 @@ public class AdminController {
                 return "admin";
             }
         }
-
+        //공통 모델 속성
         model.addAttribute("section", section);
         model.addAttribute("projectId", projectId);
         model.addAttribute("currentUsername", currentUsername);
         model.addAttribute("currentUserId", currentUser.getId());
 
+        //현재 프로젝트의 역할 조회
         ProjectRole role = userService.getProjectRole(currentUser.getId(), projectId);
         model.addAttribute("currentUserRole", role.name());
 
         // 초대 대기/승인 사용자 목록
         if ("members".equals(section) || "permissions".equals(section)) {
-            List<UserView> fetched = Optional.ofNullable(userService.findAllMembers(projectId)).orElse(Collections.emptyList());
+            //전체 멤버 조회
+        	List<UserView> fetched = Optional.ofNullable(userService.findAllMembers(projectId)).orElse(Collections.emptyList());
 
+        	//대기 중 유저 ID조회
             @SuppressWarnings("unchecked")
             List<Integer> pendingUserIds = entityManager.createNativeQuery(
                 "SELECT user_id FROM project_members WHERE project_id = :pid AND status = 'PENDING'")
                 .setParameter("pid", projectId)
                 .getResultList();
 
+            //승인된 유저 체크
             @SuppressWarnings("unchecked")
             List<Integer> approvedUserIds = entityManager.createNativeQuery(
                 "SELECT user_id FROM project_members WHERE project_id = :pid AND status = 'APPROVED'")
                 .setParameter("pid", projectId)
                 .getResultList();
-
+            
+            //승인된 멤버 필터링
             List<UserView> approvedMembers = fetched.stream()
                 .filter(u -> approvedUserIds.contains(u.getId()))
                 .collect(Collectors.toList());
@@ -131,7 +142,7 @@ public class AdminController {
             startDate.plusDays(4).format(formatter), 6L,
             startDate.plusDays(5).format(formatter), 8L
         );
-
+        //그래프 날짜 설정
         LinkedHashMap<String, Long> finalStats = new LinkedHashMap<>();
         for (int i = 0; i < 7; i++) {
             LocalDate date = startDate.plusDays(i);
@@ -145,7 +156,7 @@ public class AdminController {
 
         return "admin";
     }
-
+    //권한 변경 처리
     @PostMapping("/permissions")
     public ResponseEntity<String> changeUserRole(
             @RequestParam("projectId") int projectId,
@@ -165,7 +176,7 @@ public class AdminController {
         userService.changeUserRole(projectId, userId, ProjectRole.valueOf(role));
         return ResponseEntity.ok("권한 변경 완료");
     }
-
+    //추방 처리
     @PostMapping("/kick")
     @Transactional
     public ResponseEntity<String> kickUser(@RequestParam("projectMemberId") int projectMemberId) {
@@ -176,7 +187,7 @@ public class AdminController {
         userService.kickUser(projectMemberId);
         return ResponseEntity.ok("사용자 추방 완료");
     }
-
+    //초대 전송
     @PostMapping("/invite/send")
     @Transactional
     public ResponseEntity<String> sendProjectInvite(
@@ -191,7 +202,7 @@ public class AdminController {
             .executeUpdate();
         return ResponseEntity.ok("초대 전송 완료");
     }
-
+    //유저 초대
     @GetMapping("/invite/users")
     @ResponseBody
     public List<UserView> getUsersForInvite() {
@@ -199,7 +210,7 @@ public class AdminController {
             .map(u -> new UserView(u.getId(), u.getNickname(), u.getEmail(), null, null, u.getCreatedDate()))
             .collect(Collectors.toList());
     }
-
+    //초대 수락 (받으면 pending 상태를 approved로 변환)
     @PostMapping("/invite/accept")
     @Transactional
     public ResponseEntity<String> acceptProjectInvite(@RequestParam("inviteId") int inviteId) {
@@ -216,7 +227,7 @@ public class AdminController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("초대 수락 중 오류가 발생했습니다.");
         }
     }
-
+    //초대 거절
     @PostMapping("/invite/decline")
     @Transactional
     public ResponseEntity<String> declineProjectInvite(@RequestParam("inviteId") int inviteId) {
