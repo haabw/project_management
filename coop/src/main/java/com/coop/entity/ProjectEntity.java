@@ -22,10 +22,6 @@ public class ProjectEntity {
 	@Column(name = "project_name", nullable = false)
 	private String projectName;
 
-	@ManyToOne(fetch = FetchType.LAZY) // 관계 맵핑 애노테이션
-	@JoinColumn(name = "owner_id", nullable = false)
-	private UserEntity owner; // user_id와 연결
-
 	@Column(name = "create_date")
 	private LocalDateTime createDate;
 }
