@@ -8,8 +8,8 @@
   padding: 1rem;
   display: flex;
   flex-direction: column;
-  transition: all 0.3s ease;
   position: relative;
+  height: 100vh;         /* 중요: flex 컨테이너 높이 고정 */
 }
 
 .sidebar-middle.hidden {
@@ -40,7 +40,10 @@
   margin-bottom: 1rem;
   font-weight: 600;
   font-size: 16px;
-  text-align: center;
+}
+.team-name {
+  font-weight: bold;
+  font-size: 1.1rem;
 }
 
 .profile-box {
@@ -54,27 +57,54 @@
 }
 
 .profile-box .circle-icon {
-  margin-right: 0.5rem;         
+  margin-right: 0.5rem;   
+  font-size: 1.5rem;      
 }
 .profile-box span {
-  display: block;
+  display: flex;
   width: 100%;
 }
 
+/* 스크롤 가능한 프로젝트 리스트 */
+#project-list {
+  flex: 1;               /* 남는 공간 전부 차지 */
+  padding-right: 0.5rem;  /* 스크롤바와 간격 */
+  min-height: 0;
+  box-sizing: border-box; /* 패딩 포함 너비 계산 */
+  overflow-y: auto;      /* 콘텐츠 넘치면 스크롤 */
+  overflow-x: visible;
+  /* Firefox */
+  scrollbar-width: none;
+  /* IE, Edge */
+  -ms-overflow-style: none;
+}
+/* Chrome, Safari, Opera */
+#project-list::-webkit-scrollbar {
+  display: none;
+}
 
 .project-tab {
+  display: flex;
   background-color: #f4f5f7;
-  padding: 0.75rem 1rem 1.25rem;
-  margin-bottom: 0.75rem;
-  border-radius: 12px;
+  padding: 0.5rem;
+  margin-bottom: 0.25rem;
+  border-radius: 0.25rem;
   position: relative;
   border: 1px solid #e0e0e0;
   font-size: 14px;
   transition: background 0.2s;
-  overflow: visible;
+  justify-content: space-between;
 }
 .project-tab:hover {
-  background-color: #0074D9;
+  background-color: #c8c8c8;
+}
+/* project-name 영역은 메뉴 그룹 너비만큼 빼고 차지 */
+.project-tab .project-name {
+  flex: 1 1 auto;                             
+  max-width: calc(100% - 3rem);               
+  min-width: 0;                               
+  white-space: normal;                        
+  word-break: break-word;                     
 }
 
 .dropdown-arrow {
@@ -132,7 +162,7 @@
 .project-actions {
   position: absolute;
   top: 100%;
-  left: 0;
+  right: 0;
   background-color: white;
   border: 1px solid #ccc;
   padding: 0.5rem;
