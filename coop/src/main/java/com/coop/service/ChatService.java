@@ -26,7 +26,7 @@ public class ChatService {
     private final ProjectRepository projectRepository;
 
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-
+//데이터 타임이 로그에 같이 찍혀 나오게 설정.
 
     // --- saveMessage 메소드 ---
     @Transactional

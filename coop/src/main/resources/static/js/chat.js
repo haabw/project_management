@@ -1,5 +1,5 @@
 'use strict';
-
+//이건 맞는 것 같고
 // --- DOM 요소 가져오기 ---
 const messageForm = document.querySelector('#message-form');        // 메시지 입력 폼
 const messageInput = document.querySelector('#message-input');      // 메시지 입력 필드
@@ -136,11 +136,14 @@ function connect() {
         connectingElement.textContent = '서버에 연결 중...';
 
         // SockJS를 사용하여 WebSocket 연결 생성 (/ws는 WebSocketConfig에서 설정한 엔드포인트)
-        const socket = new SockJS('/ws');
+        const socket = new SockJS('/ws');//이거 나중애 동적으로 변경되게ㅅ 수정 필요
         // Stomp 클라이언트 생성
         stompClient = Stomp.over(socket);
 
-        // Stomp 클라이언트 디버그 메시지 비활성화 (콘솔 로그 정리)
+        // Stomp 클라이언트 디버그
+		// 
+		// 
+		// 메시지 비활성화 (콘솔 로그 정리)
         stompClient.debug = null;
 
         // Stomp 연결 시도 (헤더는 필요시 추가, 콜백 함수 등록)

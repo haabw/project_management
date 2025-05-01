@@ -15,6 +15,7 @@ import org.springframework.ui.Model; // Model 임포트 추가
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RequestParam; // RequestParam 임포트 추가
 
 import java.util.List;
 
@@ -32,23 +33,25 @@ public class ChatController {
         this.messagingTemplate = messagingTemplate;
     }
 
-    // --- 채팅 페이지를 보여주는 메소드 추가 ---
+    // --- chatPage 메소드 수정 ---
     @GetMapping("/chat/{projectId}")
-    public String chatPage(@PathVariable Long projectId, Model model) {
-        // ProjectRepository를 사용하여 projectId로 ProjectEntity 조회 (선택적: 프로젝트 이름 등 표시)
-        // 예: projectRepository.findById(projectId).ifPresent(project -> model.addAttribute("project", project));
-        // 현재는 projectId만 넘겨줍니다. chat.html 템플릿에서 ${projectId}로 사용할 수 있습니다.
+    public String chatPage(@PathVariable Long projectId,
+                           @RequestParam(name = "userId", required = true) Integer userId, // URL 파라미터 받기
+                           @RequestParam(name = "username", required = true) String username, // URL 파라미터 받기
+                           Model model) {
         model.addAttribute("projectId", projectId);
-        log.info("채팅 페이지 요청: projectId={}", projectId);
-        return "chat"; // templates/chat.html 파일을 반환
+        model.addAttribute("userId", userId);       // 모델에 userId 추가
+        model.addAttribute("username", username);   // 모델에 username 추가
+        log.info("채팅 페이지 요청: projectId={}, userId={}, username={}", projectId, userId, username);
+        return "chat";
     }
-    // --- 여기까지 추가 ---
+    // --- 수정 완료 ---
 
 
     @MessageMapping("/chat.sendMessage/{projectId}")
     public void sendMessage(@DestinationVariable Long projectId, @Payload ChatDTO chatDTO) {
         log.info("메시지 수신: projectId={}, senderId={}, message={}", projectId, chatDTO.getSenderId(), chatDTO.getMessage());
-
+        //필요시 해당 부분 수정
         if (chatDTO.getProjectId() == null) {
             chatDTO.setProjectId(projectId);
         }
