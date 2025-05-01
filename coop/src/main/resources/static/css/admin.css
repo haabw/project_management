@@ -1,0 +1,54 @@
+@charset "UTF-8";
+
+/* 관리자 전용 탭 메뉴 */
+.admin-tabs {
+  display: flex;
+  gap: 1rem;
+  background-color: transparent;
+  border-bottom: 1px solid #ddd;
+  margin-top: 0;
+  padding: 0.5rem 1.5rem;	
+  margin-bottom: 1.5rem;
+  z-index: 100;
+}
+
+/* 탭 링크 기본 스타일 */
+.admin-tabs a {
+  color: #444;
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  font-size: 0.95rem;
+}
+
+/* 마우스 호버 시 */
+.admin-tabs a:hover {
+  background-color: #e7f1ff;
+  color: #007bff;
+}
+
+/* 활성 탭 */
+.admin-tabs a.active {
+  background-color: #007bff;
+  color: white;
+  font-weight: bold;
+}
+.table {
+  border-collapse: collapse;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  background-color: white;
+}	
+/* 반응형 대응 (모바일) */
+@media (max-width: 600px) {
+  .admin-tabs {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .admin-tabs a {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.75rem;
+  }
+  
+}
