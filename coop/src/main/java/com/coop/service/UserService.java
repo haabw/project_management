@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.coop.dto.LoginDTO;
 import com.coop.dto.SignupDTO;
 import com.coop.dto.UserView; // 🔥 추가
 import com.coop.entity.ProjectMemberEntity.ProjectRole; // 🔥 추가
@@ -19,11 +18,12 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 
-@Service
-public class UserService {
+@Service //서비스 계층의 컴포넌트라는 것을 명시 
+public class UserService { // 사용자 관련 로직 
 
-    private final UserRepository userRepository;
-    private final BCryptPasswordEncoder bCryptPasswordEncoder;
+	// 의존성 주입
+    private final UserRepository userRepository; // 유저 레포지토리 
+    private final BCryptPasswordEncoder bCryptPasswordEncoder; // 비밀번호 암호화를 위한 인코더 
 
     @PersistenceContext
     private EntityManager entityManager; // 🔥 추가
@@ -36,20 +36,27 @@ public class UserService {
 
     // 회원 가입 저장
     public void save(SignupDTO signupDTO) {
+    	// 사용자명 중복 확인 
         if (userRepository.findByUsername(signupDTO.getUsername()).isPresent()) {
             throw new RuntimeException("이미 존재하는 사용자명입니다.");
         }
-
+        // 이메일 중복 확인 
         if (userRepository.findByEmail(signupDTO.getEmail()).isPresent()) {
             throw new RuntimeException("이미 가입된 이메일입니다.");
         }
+        // 닉네임 중복 확인 
+        if (userRepository.findByNickname(signupDTO.getNickname()).isPresent()) {
+            throw new RuntimeException("이미 가입된 닉네임입니다.");
+        }
 
+        // 유저 엔티티 생성 및 데이터 설정
         UserEntity user = new UserEntity();
         user.setUsername(signupDTO.getUsername());
         user.setPassword(bCryptPasswordEncoder.encode(signupDTO.getPassword()));
         user.setEmail(signupDTO.getEmail());
         user.setNickname(signupDTO.getNickname());
-
+        
+        // 사용자 정보를 저장 
         userRepository.save(user);
     }
 
@@ -99,7 +106,7 @@ public class UserService {
     }
 
     // 🔥 프로젝트 내 사용자 권한 변경
-    @Transactional
+    @Transactional // 메서드 실행을 트랜잭션 범위 내에서 처리하도록 지정
     public void changeUserRole(int projectId, int userId, ProjectRole newRole) {
         int updated = entityManager.createQuery(
             "UPDATE ProjectMemberEntity pm SET pm.role = :role " +

@@ -14,7 +14,7 @@ import com.coop.repository.UserRepository;
 import com.coop.service.UserService;
 
 //로그인 라우팅
-
+// "/auth" 하위 경로로 오는 요청을 매핑 
 @Controller
 @RequestMapping("/auth")
 public class AuthController {
@@ -30,17 +30,21 @@ public class AuthController {
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
     }
 	
+    // 회원 가입 폼 표시
 	@GetMapping("/signup")
 	public String signupFrom() {
 		return "signup";
 	}
 	
+	// 회원가입 요청 처리 
 	@PostMapping("/signup")
 	public String signup(SignupDTO signupDTO, Model model) {
 		try {
+			// 사용자 정보 저장 
 			userService.save(signupDTO);
 			return "redirect:/auth/login";
 		} catch (Exception e) {
+			// 에러 발생 시 에러 메시지를 모델에 추가하고 회원 가입 폼으로 반환 
 			model.addAttribute("error", e.getMessage());
 			return "signup";
 		}
