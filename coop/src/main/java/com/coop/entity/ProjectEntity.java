@@ -1,16 +1,16 @@
 package com.coop.entity;
 
+import java.time.LocalDateTime;
 
-import lombok.NoArgsConstructor;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
-import jakarta.persistence.*; // 어노테이션을 쓰위 위함
+import lombok.Builder;
 import lombok.Getter;
-import java.time.LocalDateTime; // 시간
+import lombok.NoArgsConstructor;
 
-//프로젝트 데이터 
-
-@NoArgsConstructor(access = AccessLevel.PROTECTED) // 롬북 어노테이션 필수
-@Getter // 롬북 어노테이션 필드값 얻기 위해
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Getter
+@Builder
 @Entity
 @Table(name = "project")
 public class ProjectEntity {
@@ -24,4 +24,11 @@ public class ProjectEntity {
 
 	@Column(name = "create_date")
 	private LocalDateTime createDate;
+
+	public ProjectEntity(int projectId, String projectName, LocalDateTime createDate) {
+		this.projectId = projectId;
+		this.projectName = projectName;
+		this.createDate = createDate;
+	}
+
 }
