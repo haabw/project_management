@@ -21,15 +21,11 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-// Index, Admin, Chat, Gantt, MindMap 라우팅
 @Controller
 public class MainController {
     private static final Logger logger = LoggerFactory.getLogger(MainController.class);
 
-    // 오늘 UV 카운터
     public static final AtomicLong TODAY_UV_COUNT = new AtomicLong(0);
-
-    // 로그인 사용자별 “마지막 카운트 날짜” 저장
     private static final ConcurrentHashMap<String, LocalDate> userLastCountDate = new ConcurrentHashMap<>();
 
     @PersistenceContext
@@ -45,33 +41,37 @@ public class MainController {
         String username = authentication.getName();
         LocalDate today = LocalDate.now();
 
-        // UV 집계
+        // UV 카운트 처리
         LocalDate last = userLastCountDate.get(username);
         if (!today.equals(last)) {
             TODAY_UV_COUNT.incrementAndGet();
             userLastCountDate.put(username, today);
         }
 
-        // PENDING 초대 조회 (username 필드를 기준으로 변경)
+        // 초대 목록 조회 (초대 ID, 프로젝트명)
         List<Object[]> pendingInvitations = entityManager.createQuery(
-                "SELECT pm.project.id, p.projectName " +
-                "FROM com.coop.entity.ProjectMemberEntity pm " +
-                "JOIN pm.project p JOIN pm.user u " +
-                "WHERE u.username = :username AND pm.status = 'PENDING'"
+            "SELECT pm.id, p.projectName " +
+            "FROM com.coop.entity.ProjectMemberEntity pm " +
+            "JOIN pm.project p JOIN pm.user u " +
+            "WHERE u.username = :username AND pm.status = 'PENDING'"
         )
         .setParameter("username", username)
         .getResultList();
 
-        // Spring 로깅 (SLF4J)
         logger.info("[{}] pendingInvitations = {}", username, pendingInvitations);
 
+        // ✅ 전체 초대 목록 모델에 전달
+        model.addAttribute("pendingRaw", pendingInvitations);
+
+        // ✅ 첫 초대 정보도 유지 (선택사항)
         if (!pendingInvitations.isEmpty()) {
-            Object[] inv = pendingInvitations.get(0);
-            model.addAttribute("inviteProjectId", ((Number) inv[0]).longValue());
-            model.addAttribute("inviteProjectName", inv[1]);
+            Object[] first = pendingInvitations.get(0);
+            model.addAttribute("inviteProjectId", ((Number) first[0]).longValue());
+            model.addAttribute("inviteProjectName", first[1]);
         }
 
-        return "index";
+        model.addAttribute("username", username);
+        return "index"; // index.html 렌더링
     }
 
     @PostMapping("/api/invitation/response")
@@ -81,30 +81,24 @@ public class MainController {
             Authentication authentication
     ) {
         String action = payload.get("action");
-        Long projectId = Long.parseLong(payload.get("projectId"));
+        Long inviteId = Long.parseLong(payload.get("projectId")); // 실제는 project_members.id
         String username = authentication.getName();
 
         int updated = 0;
         if ("accept".equalsIgnoreCase(action)) {
             updated = entityManager.createQuery(
-                    "UPDATE com.coop.entity.ProjectMemberEntity pm " +
-                    "SET pm.status = 'APPROVED' " +
-                    "WHERE pm.user.username = :username " +
-                    "AND pm.project.id = :projectId " +
-                    "AND pm.status = 'PENDING'"
+                "UPDATE com.coop.entity.ProjectMemberEntity pm " +
+                "SET pm.status = 'APPROVED' " +
+                "WHERE pm.id = :id AND pm.status = 'PENDING'"
             )
-            .setParameter("username", username)
-            .setParameter("projectId", projectId)
+            .setParameter("id", inviteId)
             .executeUpdate();
         } else if ("reject".equalsIgnoreCase(action)) {
             updated = entityManager.createQuery(
-                    "DELETE FROM com.coop.entity.ProjectMemberEntity pm " +
-                    "WHERE pm.user.username = :username " +
-                    "AND pm.project.id = :projectId " +
-                    "AND pm.status = 'PENDING'"
+                "DELETE FROM com.coop.entity.ProjectMemberEntity pm " +
+                "WHERE pm.id = :id AND pm.status = 'PENDING'"
             )
-            .setParameter("username", username)
-            .setParameter("projectId", projectId)
+            .setParameter("id", inviteId)
             .executeUpdate();
         }
 

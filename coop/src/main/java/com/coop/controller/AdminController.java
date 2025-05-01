@@ -1,3 +1,4 @@
+// 기존 코드 유지
 package com.coop.controller;
 
 import com.coop.dto.UserView;
@@ -24,11 +25,6 @@ import java.util.stream.Collectors;
 
 import static com.coop.controller.MainController.TODAY_UV_COUNT;
 
-/**
- * 관리자 페이지 전반을 처리하는 컨트롤러.
- * - 대시보드, 팀원 관리, 권한 설정, 채팅 이력 보기
- * - 프로젝트 초대, 수락/거절, 추방 기능
- */
 @Controller
 @RequestMapping("/admin")
 public class AdminController {
@@ -44,21 +40,25 @@ public class AdminController {
         this.userService = userService;
         this.userRepository = userRepository;
     }
-
+    /**
+     * 관리자 페이지 진입 시 처리되는 메인 로직
+     * - projectId 없으면 자동으로 내 프로젝트로 redirect
+     * - 현재 로그인 유저가 해당 프로젝트의 ADMIN인지 검증
+     * - 초대 대기자, 승인자 목록 전달
+     * - 통계 데이터 구성 후 admin.html로 전달
+     */
     @GetMapping
     public String adminHome(
             @RequestParam(value = "section", defaultValue = "dashboard") String section,
             @RequestParam(value = "projectId", required = false) Integer projectId,
             Model model
-    ) {  
-    	//현재 로그인 사용자 조회
+    ) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String currentUsername = auth.getName();
         Optional<UserEntity> optionalUser = userService.findByUsername(currentUsername);
-        if (optionalUser.isEmpty()) return "redirect:/login"; //로그인 정보 없을시 /login으로
+        if (optionalUser.isEmpty()) return "redirect:/login";
         UserEntity currentUser = optionalUser.get();
 
-        // 자동 리디렉션 처리
         if (projectId == null) {
             @SuppressWarnings("unchecked")
             List<Integer> myProjectIds = entityManager.createNativeQuery(
@@ -74,36 +74,33 @@ public class AdminController {
                 return "admin";
             }
         }
-        //공통 모델 속성
+
         model.addAttribute("section", section);
         model.addAttribute("projectId", projectId);
         model.addAttribute("currentUsername", currentUsername);
         model.addAttribute("currentUserId", currentUser.getId());
-
-        //현재 프로젝트의 역할 조회
+        // 현재 유저가 ADMIN인지 검사
         ProjectRole role = userService.getProjectRole(currentUser.getId(), projectId);
+        if (role == null || role != ProjectRole.ADMIN) {
+            return "redirect:/index";
+        }
         model.addAttribute("currentUserRole", role.name());
-
-        // 초대 대기/승인 사용자 목록
+        // 팀원 관리/권한 설정 섹션일 경우: 멤버 정보 구성
         if ("members".equals(section) || "permissions".equals(section)) {
-            //전체 멤버 조회
-        	List<UserView> fetched = Optional.ofNullable(userService.findAllMembers(projectId)).orElse(Collections.emptyList());
+            List<UserView> fetched = Optional.ofNullable(userService.findAllMembers(projectId)).orElse(Collections.emptyList());
 
-        	//대기 중 유저 ID조회
             @SuppressWarnings("unchecked")
             List<Integer> pendingUserIds = entityManager.createNativeQuery(
                 "SELECT user_id FROM project_members WHERE project_id = :pid AND status = 'PENDING'")
                 .setParameter("pid", projectId)
                 .getResultList();
-
-            //승인된 유저 체크
+            // 승인된 멤버만 필터링
             @SuppressWarnings("unchecked")
             List<Integer> approvedUserIds = entityManager.createNativeQuery(
                 "SELECT user_id FROM project_members WHERE project_id = :pid AND status = 'APPROVED'")
                 .setParameter("pid", projectId)
                 .getResultList();
-            
-            //승인된 멤버 필터링
+
             List<UserView> approvedMembers = fetched.stream()
                 .filter(u -> approvedUserIds.contains(u.getId()))
                 .collect(Collectors.toList());
@@ -116,20 +113,19 @@ public class AdminController {
             model.addAttribute("pendingUserIds", Collections.emptyList());
             model.addAttribute("approvedUserIds", Collections.emptyList());
         }
-
+        // 나에게 온 초대 목록 (PENDING 상태)
         @SuppressWarnings("unchecked")
         List<Object[]> pendingRaw = entityManager.createNativeQuery(
             "SELECT pm.id, p.project_name FROM project_members pm " +
-            "JOIN projects p ON pm.project_id = p.project_id " +
+            "JOIN project p ON pm.project_id = p.project_id " +
             "WHERE pm.user_id = :uid AND pm.status = 'PENDING'")
             .setParameter("uid", currentUser.getId())
             .getResultList();
         model.addAttribute("pendingRaw", pendingRaw);
-
-        // 방문자 통계 처리
+        // 방문자 수 (금일 접속자 수 포함)
         long todayUv = TODAY_UV_COUNT.get();
         model.addAttribute("todayUv", todayUv);
-
+        // 최근 7일 방문자 통계
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM-dd");
         LocalDate today = LocalDate.now();
         LocalDate startDate = today.minusDays(6);
@@ -142,7 +138,7 @@ public class AdminController {
             startDate.plusDays(4).format(formatter), 6L,
             startDate.plusDays(5).format(formatter), 8L
         );
-        //그래프 날짜 설정
+
         LinkedHashMap<String, Long> finalStats = new LinkedHashMap<>();
         for (int i = 0; i < 7; i++) {
             LocalDate date = startDate.plusDays(i);
@@ -156,7 +152,34 @@ public class AdminController {
 
         return "admin";
     }
-    //권한 변경 처리
+
+    // ✅ index 전용 초대 알림용 GET
+    @GetMapping("/index")
+    public String userIndexWithInvitation(Model model) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        Optional<UserEntity> userOpt = userService.findByUsername(username);
+        if (userOpt.isEmpty()) return "redirect:/login";
+
+        UserEntity user = userOpt.get();
+
+        @SuppressWarnings("unchecked")
+        List<Object[]> pendingRaw = entityManager.createNativeQuery(
+            "SELECT pm.id, p.project_name FROM project_members pm " +
+            "JOIN project p ON pm.project_id = p.project_id " +
+            "WHERE pm.user_id = :uid AND pm.status = 'PENDING'")
+            .setParameter("uid", user.getId())
+            .getResultList();
+
+        model.addAttribute("username", user.getNickname());
+        model.addAttribute("pendingRaw", pendingRaw);
+        model.addAttribute("section", "invitation"); // ✅ admin.html에서 초대 섹션 활성화
+
+        return "admin";
+    }
+    /**
+     * 권한 변경 처리
+     */
     @PostMapping("/permissions")
     public ResponseEntity<String> changeUserRole(
             @RequestParam("projectId") int projectId,
@@ -167,16 +190,16 @@ public class AdminController {
         String currentUsername = auth.getName();
         UserEntity currentUser = userService.findByUsername(currentUsername)
             .orElseThrow(() -> new RuntimeException("현재 사용자 정보를 찾을 수 없습니다."));
-
         ProjectRole currentRole = userService.getProjectRole(currentUser.getId(), projectId);
         if (currentRole == ProjectRole.USER) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("권한이 없습니다.");
         }
-
         userService.changeUserRole(projectId, userId, ProjectRole.valueOf(role));
         return ResponseEntity.ok("권한 변경 완료");
     }
-    //추방 처리
+    /**
+     * 팀원 추방 처리
+     */
     @PostMapping("/kick")
     @Transactional
     public ResponseEntity<String> kickUser(@RequestParam("projectMemberId") int projectMemberId) {
@@ -187,13 +210,26 @@ public class AdminController {
         userService.kickUser(projectMemberId);
         return ResponseEntity.ok("사용자 추방 완료");
     }
-    //초대 전송
+
+    /**
+     * 초대 전송 처리 (중복 초대 방지 포함)
+     */
     @PostMapping("/invite/send")
     @Transactional
     public ResponseEntity<String> sendProjectInvite(
             @RequestParam("receiverId") int receiverId,
             @RequestParam("projectId") int projectId
     ) {
+    	   Long count = ((Number) entityManager.createNativeQuery(
+    		        "SELECT COUNT(*) FROM project_members WHERE user_id = :uid AND project_id = :pid AND status = 'PENDING'")
+    		        .setParameter("uid", receiverId)
+    		        .setParameter("pid", projectId)
+    		        .getSingleResult()).longValue();
+
+    		    if (count > 0) {
+    		        return ResponseEntity.status(HttpStatus.CONFLICT).body("이미 초대된 사용자입니다.");
+    		    }
+
         entityManager.createNativeQuery(
             "INSERT INTO project_members (user_id, project_id, role, status) " +
             "VALUES (:userId, :projectId, 'USER', 'PENDING')")
@@ -202,7 +238,9 @@ public class AdminController {
             .executeUpdate();
         return ResponseEntity.ok("초대 전송 완료");
     }
-    //유저 초대
+    /**
+     * 초대 가능한 사용자 목록 조회 (JSON 반환)
+     */
     @GetMapping("/invite/users")
     @ResponseBody
     public List<UserView> getUsersForInvite() {
@@ -210,7 +248,9 @@ public class AdminController {
             .map(u -> new UserView(u.getId(), u.getNickname(), u.getEmail(), null, null, u.getCreatedDate()))
             .collect(Collectors.toList());
     }
-    //초대 수락 (받으면 pending 상태를 approved로 변환)
+    /**
+     * 초대 수락 처리
+     */
     @PostMapping("/invite/accept")
     @Transactional
     public ResponseEntity<String> acceptProjectInvite(@RequestParam("inviteId") int inviteId) {
@@ -222,12 +262,15 @@ public class AdminController {
             if (updated == 0) {
                 return ResponseEntity.badRequest().body("초대가 존재하지 않거나 이미 처리되었습니다.");
             }
-            return ResponseEntity.ok("초대 수락 완료");
+            return ResponseEntity.ok("프로젝트에 성공적으로 참여하셨습니다!");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("초대 수락 중 오류가 발생했습니다.");
         }
     }
-    //초대 거절
+
+    /**
+     * 초대 거절 처리
+     */
     @PostMapping("/invite/decline")
     @Transactional
     public ResponseEntity<String> declineProjectInvite(@RequestParam("inviteId") int inviteId) {
@@ -244,4 +287,36 @@ public class AdminController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("초대 거절 중 오류가 발생했습니다.");
         }
     }
+    /**
+     * 프로젝트 생성 및 ADMIN 등록
+     */
+    @PostMapping("/project/create")
+    @Transactional
+    public ResponseEntity<String> createProject(@RequestParam("projectName") String projectName) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = auth.getName();
+
+        UserEntity currentUser = userService.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("사용자 정보를 찾을 수 없습니다."));
+
+        // 1. 프로젝트 생성
+        entityManager.createNativeQuery(
+                "INSERT INTO project (project_name, create_date) VALUES (:pname, NOW())")
+                .setParameter("pname", projectName)
+                .executeUpdate();
+
+        // 2. 방금 생성된 프로젝트 ID 가져오기
+        Integer projectId = (Integer) entityManager.createNativeQuery("SELECT LAST_INSERT_ID()")
+                .getSingleResult();
+
+        // 3. 프로젝트 생성자를 ADMIN으로 등록
+        entityManager.createNativeQuery(
+                "INSERT INTO project_members (user_id, project_id, role, status) " +
+                        "VALUES (:uid, :pid, 'ADMIN', 'APPROVED')")
+                .setParameter("uid", currentUser.getId())
+                .setParameter("pid", projectId)
+                .executeUpdate();
+
+        return ResponseEntity.ok("프로젝트 생성 및 관리자 등록 완료");
+    }  
 }
