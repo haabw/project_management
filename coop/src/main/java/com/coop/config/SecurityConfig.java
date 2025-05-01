@@ -7,6 +7,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import com.coop.service.CustomUserDetailsService;
@@ -16,12 +17,15 @@ import com.coop.service.CustomUserDetailsService;
 @Configuration
 public class SecurityConfig {
 
-	// userDetailsService 사용 추가 
-	private final CustomUserDetailsService userDetailsService;
-	
-	@Autowired
-	public SecurityConfig(CustomUserDetailsService userDetailsService) {
-		this.userDetailsService = userDetailsService;
+		// userDetailsService 사용 추가 
+		private final CustomUserDetailsService userDetailsService;
+		// 로그인 실패 핸들로 의존성 주입 
+		private final AuthenticationFailureHandler customAuthFailureHandler;
+		
+		@Autowired
+		public SecurityConfig(CustomUserDetailsService userDetailsService, AuthenticationFailureHandler customAuthFailureHandler) {
+			this.userDetailsService = userDetailsService;
+			this.customAuthFailureHandler = customAuthFailureHandler;
 	}
 	
     @Bean
@@ -48,6 +52,7 @@ public class SecurityConfig {
             .formLogin(form -> form //폼 기반 로그인 설정 
             		.loginPage("/auth/login")  //로그인 페이지 경로 설정 
             		.defaultSuccessUrl("/index") //로그인 시 이동 경로 
+            		.failureHandler(customAuthFailureHandler)
             		.usernameParameter("username")
             		.passwordParameter("password")
             		)
