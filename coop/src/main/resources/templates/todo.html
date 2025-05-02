@@ -12,8 +12,8 @@
 
         <div class="row">
             <!-- 간트 차트 todo -->
-            <div class="col-md-6">
-                <div class="card mb-4">
+            <div class="col-md-6" style="max-width: 420px;">
+                <div class="card mb-4" style="height: 537px; display: flex; flex-direction: column;">
                     <div class="card-header">Gantt Chart Todos</div>
                     <div class="card-body">
                         <ul class="list-group list-group-flush">
@@ -35,10 +35,10 @@
             </div>
 
             <!-- 내 작업 투두 -->
-            <div class="col-md-6">
-                <div class="card mb-4">
+            <div class="col-md-6" style="max-width: 420px;">
+                <div class="card mb-4" style="height: 400px; display: flex; flex-direction: column;">
                     <div class="card-header">내 작업 목록</div>
-                    <div class="card-body">
+                    <div class="card-body p-0" style="flex: 1; overflow-y: auto;">
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item d-flex align-items-center"
                                 th:each="todo : ${customTodos}">
