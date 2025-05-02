@@ -186,6 +186,21 @@ closeToggle.addEventListener("click", () => {
 			editLink.dataset.id = proj.projectId;
 			delLink.dataset.id = proj.projectId;
 
+			// ✅ 버튼 삽입
+			const body = clone.querySelector('.accordion-body');
+			const buttonGroup = document.createElement('div');
+			buttonGroup.className = 'mt-2';
+
+			// 버튼들 생성
+			buttonGroup.innerHTML = `
+				<a class="btn btn-outline-primary btn-sm w-100 mb-1" href="/gantt?projectId=${proj.projectId}">Gantt</a>
+				<a class="btn btn-outline-primary btn-sm w-100 mb-1" href="/mindmap?projectId=${proj.projectId}">Mindmap</a>
+				<a class="btn btn-outline-primary btn-sm w-100 mb-1" href="/admin?projectId=${proj.projectId}">Admin</a>
+				<a class="btn btn-outline-primary btn-sm w-100 mb-1" href="/chat?projectId=${proj.projectId}">Chat</a>
+			`;
+
+			body.appendChild(buttonGroup);
+
 			projectList.appendChild(item);
 		}
 		// ────────────────────────────────────────────────────────────────────
