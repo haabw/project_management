@@ -1,324 +1,183 @@
-	<!DOCTYPE html>
-	<html xmlns:th="http://www.thymeleaf.org">
-	<head>
-	  <meta charset="UTF-8"/>
-	  <title>관리자 페이지</title>
-	  <link rel="stylesheet" th:href="@{/css/main.css}"/>
-	  <style>
-	    #wrapper { display: flex; margin: 0; height: 100vh; }
-	    #sidebar-wrapper { position: fixed; top:0; left:0; width:250px; height:100%; background:#f8f9fa; border-right:1px solid #ddd; overflow-y:auto; transition:margin-left .3s ease; }
-	    #page-content-wrapper { margin-left:250px; flex:1; overflow-y:auto; transition:margin-left .3s ease; padding:1rem; }
-	    #wrapper.toggled #sidebar-wrapper { margin-left:-250px; }
-	    #wrapper.toggled #page-content-wrapper { margin-left:0; }
-	    #sidebar-wrapper .list-group-flush a { display:block; padding:.75rem 1rem; color:#333; text-decoration:none; border-bottom:1px solid #ddd; }
-	    #sidebar-wrapper .list-group-flush a:hover, #sidebar-wrapper .list-group-flush a.active { background:#e4e4e4; }
-	    #sidebarToggle { margin:.5rem; }
-	    #page-content-wrapper table { table-layout: fixed; width: 100%; border-collapse: collapse; margin-top: 1rem; }
-	    #page-content-wrapper th, #page-content-wrapper td { border: 1px solid #ddd; padding: .5rem .75rem; text-align: center; vertical-align: middle; }
-	    #page-content-wrapper td { height: 3rem; }
-	    #page-content-wrapper th { background-color: #f1f9ff; font-weight: bold; }
-	    #page-content-wrapper tbody tr:hover { background-color: #fafafa; }
-	    #page-content-wrapper button { padding: .25rem .5rem; font-size: .9rem; margin: 0 .2rem; }
-	    #page-content-wrapper h2 { text-align: left; margin-top: 0; display: inline-block; }
-	    #inviteButton { float: right; margin-top: -2rem; }
-	    #inviteAlert {
-	      position: fixed;
-	      bottom: 20px;
-	      right: 20px;
-	      background: #e8f0fe;
-	      padding: 1rem;
-	      border: 1px solid #90caf9;
-	      border-radius: 8px;
-	      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-	      z-index: 1000;
-	    }
-	    #inviteAlert ul { padding-left: 1.2rem; margin: .5rem 0 0 0; }
-	    #inviteAlert li { margin-bottom: .5rem; }
-	  </style>
-	  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-	</head>
-	<body>
-	
-	<script th:inline="javascript">
-	/*<![CDATA[*/
-	var pendingIds  = /*[[${pendingUserIds}]]*/ [];  //<!-- 대기 중인(초대받은) 유저의 ID 배열 -->
-	var approvedIds = /*[[${approvedUserIds}]]*/ []; // <!-- 이미 멤버로 승인된 유저의 ID 배열 -->
-	/*]]>*/
-	</script>
-	
-	<!-- 사이드 바 메뉴 -->
-	<div id="wrapper">
-	  <div id="sidebar-wrapper" class="bg-white border-end">
-	    <div class="sidebar-heading border-bottom p-3">관리자 메뉴</div>
-	    <div class="list-group list-group-flush">
-	<a th:href="@{'/admin'(section='dashboard', projectId=${projectId})}" th:classappend="${section=='dashboard'}? 'active'">대시보드</a>
-	<a th:href="@{'/admin'(section='members', projectId=${projectId})}" th:classappend="${section=='members'}? 'active'">팀원 관리</a>
-	      <a th:href="@{'/admin'(section='permissions', projectId=${projectId})}" th:classappend="${section=='permissions'}? 'active'">권한 설정</a>
-	<a th:href="@{'/admin'(section='chat', projectId=${projectId})}" th:classappend="${section=='chat'}? 'active'">채팅 이력</a>
+<!DOCTYPE html>
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/main}">
+<head>
+  <meta charset="UTF-8"/>
+  <title layout:fragment="title">관리자 페이지</title>
+  <link rel="stylesheet" th:href="@{/css/main.css}"/>
+  <link rel="stylesheet" th:href="@{/css/sidebar.css}"/>
+  <link rel="stylesheet" th:href="@{/css/submenu.css}"/>
+  <link rel="stylesheet" th:href="@{/css/admin.css}"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div layout:fragment="content">
+ <div class="admin-tabs">
+    <a th:href="@{/admin?section=dashboard}" th:classappend="${section=='dashboard'} ? 'active' : ''">대시보드</a>
+    <a th:href="@{/admin?section=members}" th:classappend="${section=='members'} ? 'active' : ''">팀원 관리</a>
+    <a th:href="@{/admin?section=permissions}" th:classappend="${section=='permissions'} ? 'active' : ''">권한 설정</a>
+    <a th:href="@{/admin?section=chat}" th:classappend="${section=='chat'} ? 'active' : ''">채팅 이력</a>
+  </div>
 
-	    </div>
-	  </div>
-	
-	  <div id="page-content-wrapper">
-	    <nav class="navbar navbar-light bg-light border-bottom p-2">
-	      <button class="btn btn-primary" id="sidebarToggle">Toggle Menu</button>
-	    </nav>
-	
-	<!-- ADMIN 페이지 대시보드 그래프 -->
-	   <section th:if="${section=='dashboard'}">
-  <h2>대시보드</h2>
-  <p>오늘 접속자: <strong th:text="${todayUv} + ' 명'">0 명</strong></p>   <!-- /index로 갈 시 자동 카운팅 -->
-  <h3>일일 접속자 통계</h3>
-  <canvas id="uvChart" width="600" height="300"></canvas>
+  <!-- 데이터 전달용 hidden 요소 -->
+  <div id="projectInfo" th:attr="data-project-id=${projectId}" style="display:none;"></div>
+
+  <!-- 전역 JS 변수 정의 -->
   <script th:inline="javascript">
-    const labels = /*[[${uvLabels}]]*/ [];
-    const data   = /*[[${uvCounts}]]*/ [];
+    window.pendingIds  = /*[[${pendingUserIds}]]*/ [];
+    window.approvedIds = /*[[${approvedUserIds}]]*/ [];
+  </script>
 
-    const ctx = document.getElementById('uvChart').getContext('2d');
-    new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: '일일 접속자 수',
-          data: data,
-          fill: false,
-          tension: 0.1
-        }]
-      },
-      options: {
-        scales: {
-          y: {
-            beginAtZero: true,
-            min: 0,
-            max: 10,
-            ticks: { stepSize: 1 }
+  <!-- 대시보드 -->
+  <section th:if="${section=='dashboard'}">
+    <h2>대시보드</h2>
+    <p>오늘 접속자: <strong th:text="${todayUv} + ' 명'">0 명</strong></p>
+    <h3>일일 접속자 통계</h3>
+    <canvas id="uvChart" width="600" height="300"></canvas>
+    <script th:inline="javascript">
+      const labels = /*[[${uvLabels}]]*/ [];
+      const data   = /*[[${uvCounts}]]*/ [];
+      const ctx = document.getElementById('uvChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{ label: '일일 접속자 수', data: data, fill: false, tension: 0.1 }]
+        },
+        options: {
+          scales: {
+            y: { beginAtZero: true, min: 0, max: 10, ticks: { stepSize: 1 } }
           }
         }
-      }
-    });
-  </script>
-</section>
-		<!-- ADMIN 팀원 관리 페이지 -->
-	    <section th:if="${section=='members'}">
-	      <h2>팀원 관리</h2>
-	      <button id="inviteButton" onclick="openInviteUserModal()">초대</button> <!-- 우측 상단 초대 -->
-	      <table>
-	        <thead>
-	          <tr><th>닉네임</th><th>E-mail</th><th>생성일자</th><th>권한</th><th>관리</th></tr> <!-- 표기되는 표 -->
-	        </thead>
-	        <tbody>
-	          <tr th:each="u : ${users}">
-	            <td th:text="${u.nickname}">닉네임</td>
-	            <td th:text="${u.email}">email@example.com</td>
-	            <td th:text="${u.createdDate != null} ? ${#temporals.format(u.createdDate, 'yyyy-MM-dd')} : '-'">2025-04-28</td>
-	            <td th:text="${u.role}">USER</td>
-	            <td>
-	              <div th:if="${(currentUserRole=='ADMIN' or (currentUserRole=='EDITOR' and u.role!='ADMIN')) and currentUserId != u.id}">
-	                <button type="button" th:onclick="|confirmKick(${u.projectMemberId})|">추방</button>
-	              </div>
-	            </td>
-	          </tr>
-	        </tbody>
-	      </table>
-	    </section>
-	
-	 	<!-- ADMIN 권한 설정 페이지 -->
-	    <section th:if="${section=='permissions'}">
-	      <h2>권한 설정</h2>
-	      <table>
-	        <thead>
-	          <tr><th>닉네임</th><th>E-mail</th><th>생성일자</th><th>권한</th><th>변경</th></tr>
-	        </thead>
-	        <tbody>
-	          <tr th:each="u : ${users}">
-	            <td th:text="${u.nickname}">닉네임</td>
-	            <td th:text="${u.email}">email@example.com</td>
-	            <td th:text="${u.createdDate != null} ? ${#temporals.format(u.createdDate, 'yyyy-MM-dd')} : '-'">2025-04-28</td>
-	            <td th:text="${u.role}">USER</td>
-	            <td>
-	              <div th:if="${(currentUserRole=='ADMIN' or (currentUserRole=='EDITOR' and u.role!='ADMIN')) and currentUserId != u.id}">
-	                <!-- 권한 설정 -->
-	                <select th:id="'roleSelect' + ${u.id}">
-	                  <option value="ADMIN" th:selected="${u.role=='ADMIN'}">ADMIN</option>
-	                  <option value="EDITOR" th:selected="${u.role=='EDITOR'}">EDITOR</option>
-	                  <option value="USER" th:selected="${u.role=='USER'}">USER</option>
-	                </select>
-	                <button type="button" th:onclick="|submitChangeRole(event, ${u.id})|">변경</button>
-	              </div>
-	            </td>
-	          </tr>
-	        </tbody>
-	      </table>
-	    </section>
-			<!-- 채팅 이력 페이지 -->
-	    <section th:if="${section=='chat'}">
-	      <h2>채팅 이력</h2>
-	      <ul>
-	        <li th:each="c : ${chatLogs}">
-	          <strong th:text="${c.user.nickname}">user</strong>: 
-	          <span th:text="${c.message}">message</span>
-	          <small th:text="${c.timestamp}">time</small>
-	        </li>
-	      </ul>
-	    </section>
-	  </div>
-	</div>
-	
-	<!-- 여기까지 HTML -->
-	<!-- 초대 모달창 -->
-	<div id="inviteModal" style="display:none; position:fixed; top:20%; left:30%; width:40%; background:white; padding:1rem; border:2px solid #333; z-index:1000; box-shadow:0 0 10px rgba(0,0,0,0.5);">
-	  <h2 style="text-align:center;">유저 초대하기</h2>
-	  <table style="width:100%; margin-top:1rem; border-collapse:collapse;">
-	    <thead>
-	      <tr style="background-color:#f1f1f1;">
-	        <th style="padding:0.5rem; border:1px solid #ddd;">닉네임</th>
-	        <th style="padding:0.5rem; border:1px solid #ddd;">E-mail</th>
-	        <th style="padding:0.5rem; border:1px solid #ddd;">초대</th>
-	      </tr>
-	    </thead>
-	    <tbody id="inviteUserList"></tbody>
-	  </table>
-	  <div style="text-align:center; margin-top:1rem;">
-	    <button onclick="closeInviteModal()">닫기</button>
-	  </div>
-	</div>
-	
-	<!-- 초대 알림창 -->
-	<div id="inviteAlert" th:if="${pendingRaw}">
-	  <p style="margin:0 0 .5rem 0; font-weight:bold;">초대받은 프로젝트가 있습니다!</p>
-	  <ul>
-	    <li th:each="inv : ${pendingRaw}">
-	      <span th:text="${inv[1]}"></span>에 초대되었습니다.
-	      <button type="button" class="accept-inv" th:attr="data-invite-id=${inv[0]}" onclick="handleAcceptInvite(this)">수락</button>
-	      <button type="button" class="decline-inv" th:attr="data-invite-id=${inv[0]}" onclick="handleDeclineInvite(this)">거절</button>
-	    </li>
-	  </ul>
-	</div>
-	
-	<!-- 멤버 초대 리스트 -->
-	<script th:inline="javascript">
-	function openInviteUserModal() {
-	  fetch('/admin/invite/users')
-	    .then(res => res.json())
-	    .then(data => {
-	      const list = document.getElementById('inviteUserList');
-	      list.innerHTML = '';
-	      data.forEach(user => {
-	        const isPending = pendingIds.includes(user.id);
-	        const isApproved = approvedIds.includes(user.id);
-	        let actionHtml;
-	        if (isApproved) {
-	          actionHtml = `<span style="color:gray;">멤버</span>`;
-	        } else if (isPending) {
-	          actionHtml = `<span style="color:gray;">대기중</span>`;
-	        } else {
-	          actionHtml = `<button onclick="sendInvite(${user.id})">초대</button>`;
-	        }
-	        const row = document.createElement('tr');
-	        row.innerHTML = `
-	          <td style='padding:.5rem;border:1px solid #ddd;'>${user.nickname}</td>
-	          <td style='padding:.5rem;border:1px solid #ddd;'>${user.email}</td>
-	          <td style='padding:.5rem;border:1px solid #ddd;text-align:center;'>${actionHtml}</td>`;
-	        list.appendChild(row);
-	      });
-	      document.getElementById('inviteModal').style.display = 'block';
-	    });
-	}
-	
-	function closeInviteModal() {
-	  document.getElementById('inviteModal').style.display = 'none';
-	}
-	<!-- 초대 전송 -->
-	function sendInvite(userId) {
-	  const projectId = /*[[${projectId}]]*/ 1;
-	  if (!confirm('정말 초대하시겠습니까?')) return;
-	  fetch('/admin/invite/send', {
-	    method: 'POST',
-	    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-	    body: new URLSearchParams({ receiverId: userId, projectId: projectId })
-	  })
-	  .then(r => { if (!r.ok) throw new Error(); alert('초대 완료!'); location.reload(); })
-	  .catch(() => alert('초대 실패'));
-	}
-	//<!-- 권한 변경 -->
-	function submitChangeRole(event, userId) {
-	  const projectId = /*[[${projectId}]]*/ 1;
-	  const selectEl = document.getElementById('roleSelect' + userId);
-	  const newRole = selectEl.value;
-	  if (!confirm('권한을 변경하시겠습니까?')) return;
-	  fetch(`/admin/permissions`, {
-	    method: 'POST',
-	    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-	    body: new URLSearchParams({ userId, role: newRole, projectId })
-	  })
-	  .then(r => { if (!r.ok) throw new Error(); alert('권한 변경 완료!'); location.reload(); })
-	  .catch(() => alert('권한 변경 실패'));
-	}
-	
-	//<!-- 추방 -->
-	function confirmKick(projectMemberId) {
-	  if (!confirm('정말로 이 사용자를 추방하시겠습니까?')) return;
-	  fetch('/admin/kick', {
-	    method: 'POST',
-	    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-	    body: new URLSearchParams({ projectMemberId })
-	  })
-	  .then(r => { if (!r.ok) throw new Error(); alert('추방 완료되었습니다.'); location.reload(); })
-	  .catch(() => alert('추방 실패'));
-	}
-	
-	//<!-- 초대 수락 -->
-	function handleAcceptInvite(button) {
-	  const inviteId = button.getAttribute('data-invite-id');
-	  fetch('/admin/invite/accept', {
-	    method: 'POST',
-	    headers: {'Content-Type':'application/x-www-form-urlencoded'},
-	    body: new URLSearchParams({ inviteId })
-	  })
-	  .then(r => { if (!r.ok) throw new Error(); return r.text(); })
-	  .then(msg => { alert(msg); location.reload(); })
-	  .catch(() => alert('초대 수락 실패'));
-	}
-	
-	//<!-- 초대 거절 -->
-	function handleDeclineInvite(button) {
-	  const inviteId = button.getAttribute('data-invite-id');
-	  fetch('/admin/invite/decline', {
-	    method: 'POST',
-	    headers: {'Content-Type':'application/x-www-form-urlencoded'},
-	    body: new URLSearchParams({ inviteId })
-	  })
-	  .then(r => { if (!r.ok) throw new Error(); return r.text(); })
-	  .then(msg => { alert(msg); location.reload(); })
-	  .catch(() => alert('초대 거절 실패'));
-	}
-	
-	function removeInviteAlertItem(button) {
-	  const listItem = button.parentElement;
-	  listItem.remove();
-	  const inviteAlert = document.getElementById('inviteAlert');
-	  if (inviteAlert.querySelector('li') === null) {
-	    inviteAlert.style.display = 'none';
-	  }
-	}
-	</script>
-	
-	<script>
-	document.getElementById('sidebarToggle').addEventListener('click', function(e){
-	  e.preventDefault();
-	  document.getElementById('wrapper').classList.toggle('toggled');
-	});
-	
-	document.addEventListener('DOMContentLoaded', () => {
-	  const box = document.getElementById('inviteAlert');
-	  if (!box) return;
-	  const items = box.querySelectorAll('li');
-	  if (items.length === 0) {
-	    box.style.display = 'none';
-	  }
-	});
-	</script>
-	
-	</body>
-	</html>
+      });
+    </script>
+  </section>
+
+  <!-- 팀원 관리 -->
+  <section th:if="${section=='members'}">
+    <h2 style="margin-bottom: 1.5rem;">팀원 관리</h2>
+    <div style="position: relative;">
+      <button id="inviteButton" class="btn btn-primary btn-sm" style="position: absolute; top: -2.2rem; right: 0;" onclick="openInviteUserModal()">초대</button>
+      <div style="max-height: 400px; overflow-y: auto;">
+        <table class="table table-bordered text-center align-middle">
+          <thead>
+            <tr>
+              <th style="background-color:#f0f8ff;">닉네임</th>
+              <th style="background-color:#f0f8ff;">E-mail</th>
+              <th style="background-color:#f0f8ff;">생성일자</th>
+              <th style="background-color:#f0f8ff;">권한</th>
+              <th style="background-color:#f0f8ff;">관리</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="u : ${users}">
+              <td th:text="${u.nickname}">닉네임</td>
+              <td th:text="${u.email}">email@example.com</td>
+              <td th:text="${u.createdDate != null} ? ${#temporals.format(u.createdDate, 'yyyy-MM-dd')} : '-'">날짜</td>
+              <td th:text="${u.role}">USER</td>
+              <td>
+                <div th:if="${(currentUserRole=='ADMIN' or (currentUserRole=='EDITOR' and u.role!='ADMIN')) and currentUserId != u.id}">
+                  <button type="button" class="btn btn-sm btn-outline-danger" th:onclick="|confirmKick(${u.projectMemberId})|">추방</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 권한 설정 -->
+  <section th:if="${section=='permissions'}">
+    <h2 style="margin-bottom: 1.5rem;">권한 설정</h2>
+    <div style="max-height: 400px; overflow-y: auto;">
+      <table class="table table-bordered text-center align-middle">
+        <thead>
+          <tr>
+            <th style="background-color:#f0f8ff;">닉네임</th>
+            <th style="background-color:#f0f8ff;">E-mail</th>
+            <th style="background-color:#f0f8ff;">생성일자</th>
+            <th style="background-color:#f0f8ff;">권한</th>
+            <th style="background-color:#f0f8ff;">관리</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:each="u : ${users}">
+            <td th:text="${u.nickname}">닉네임</td>
+            <td th:text="${u.email}">email@example.com</td>
+            <td th:text="${u.createdDate != null} ? ${#temporals.format(u.createdDate, 'yyyy-MM-dd')} : '-'">날짜</td>
+            <td th:text="${u.role}">USER</td>
+            <td>
+              <div th:if="${(currentUserRole=='ADMIN' or (currentUserRole=='EDITOR' and u.role!='ADMIN')) and currentUserId != u.id}">
+                <select th:id="'roleSelect' + ${u.id}" class="form-select form-select-sm d-inline-block w-auto">
+                  <option value="ADMIN" th:selected="${u.role=='ADMIN'}">ADMIN</option>
+                  <option value="EDITOR" th:selected="${u.role=='EDITOR'}">EDITOR</option>
+                  <option value="USER" th:selected="${u.role=='USER'}">USER</option>
+                </select>
+                <button type="button" class="btn btn-sm btn-outline-primary" th:onclick="|submitChangeRole(event, ${u.id})|">변경</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 채팅 이력 -->
+  <section th:if="${section=='chat'}">
+    <h2>채팅 이력</h2>
+    <ul>
+      <li th:each="c : ${chatLogs}">
+        <strong th:text="${c.user.nickname}">user</strong>:
+        <span th:text="${c.message}">message</span>
+        <small th:text="${c.timestamp}">time</small>
+      </li>
+    </ul>
+  </section>
+
+  <!-- 초대 알림용 섹션 -->
+  <section th:if="${section=='invitation'}" style="padding: 2rem;">
+    <h1>환영합니다</h1>
+    <div style="margin-top:1rem; padding: 1rem; background:#f8f9fa; border:1px solid #ddd;">
+      <h2><strong>COOP에 오신 것을 환영합니다!</strong></h2>
+      <p>협업을 위한 최고의 플랫폼에서 프로젝트를 시작해보세요.</p>
+    </div>
+    <div id="inviteAlert" th:if="${pendingRaw != null and pendingRaw.size() > 0}" style="margin-top:2rem;">
+      <h3>📬 초대받은 프로젝트</h3>
+      <ul>
+        <li th:each="inv : ${pendingRaw}">
+          <span th:text="${inv[1]}"></span>에 초대되었습니다.
+          <button type="button" class="accept-inv" th:attr="data-invite-id=${inv[0]}" onclick="handleAcceptInvite(this)">수락</button>
+          <button type="button" class="decline-inv" th:attr="data-invite-id=${inv[0]}" onclick="handleDeclineInvite(this)">거절</button>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 초대 모달창 -->
+  <div id="inviteModal" style="display:none; position:fixed; top:20%; left:30%; width:40%; background:white; padding:1rem; border:2px solid #333; z-index:1000; box-shadow:0 0 10px rgba(0,0,0,0.5);">
+    <h2 style="text-align:center;">유저 초대하기</h2>
+    <div id="invite-user-table-container" style="max-height:300px; overflow-y:auto;">
+      <table style="width:100%; margin-top:1rem; border-collapse:collapse;">
+        <thead>
+          <tr style="background-color:#f0f8ff;">
+            <th style="padding:0.5rem; border:1px solid #ddd; text-align: center;">닉네임</th>
+            <th style="padding:0.5rem; border:1px solid #ddd; text-align: center;">E-mail</th>
+            <th style="padding:0.5rem; border:1px solid #ddd; text-align: center;">초대</th>
+          </tr>
+        </thead>
+        <tbody id="inviteUserList"></tbody>
+      </table>
+    </div>
+    <div style="text-align:center; margin-top:1rem;">
+      <button onclick="closeInviteModal()">닫기</button>
+    </div>
+  </div>
+
+  <!-- 외부 admin.js 연결 -->
+  <script th:src="@{/js/admin.js}"></script>
+</div>
+</body>
+</html>

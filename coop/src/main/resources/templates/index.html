@@ -1,19 +1,62 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org"
-	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-	layout:decorate="~{layout/main}">
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/main}">
 <head>
-<title layout:fragment="title">coop-index</title>
+  <title layout:fragment="title">coop-index</title>
 </head>
 <body>
-	<div layout:fragment="content">
-		<div class="container mt-5">
-			<h1 class="text-center mb-4">환영합니다</h1>
-			<div class="card shadow-lg p-4 text-center">
-				<h3>COOP에 오신 것을 환영합니다!</h3>
-				<p>협업을 위한 최고의 플랫폼에서 프로젝트를 시작해보세요.</p>
-			</div>
-		</div>
-	</div>
+<div layout:fragment="content">
+  <div class="container mt-5">
+    <h1 class="text-center mb-4">환영합니다</h1>
+    <div class="card shadow-lg p-4 text-center">
+      <h3>COOP에 오신 것을 환영합니다!</h3>
+      <p>협업을 위한 최고의 플랫폼에서 프로젝트를 시작해보세요.</p>
+    </div>
+
+    <!-- ✅ 초대 알림: pendingRaw가 있을 경우 -->
+    <div class="mt-5" th:if="${pendingRaw != null and pendingRaw.size() > 0}">
+      <h4 class="text-center mb-3">📬 초대받은 프로젝트</h4>
+      <ul class="list-group">
+        <li class="list-group-item d-flex justify-content-between align-items-center"
+            th:each="inv : ${pendingRaw}">
+          <span th:text="${inv[1]}">프로젝트 이름</span>
+          <div>
+            <button type="button"
+                    class="btn btn-sm btn-outline-success me-1"
+                    th:attr="data-project-id=${inv[0]}"
+                    onclick="respondInvite(this, 'accept')">수락</button>
+            <button type="button"
+                    class="btn btn-sm btn-outline-danger"
+                    th:attr="data-project-id=${inv[0]}"
+                    onclick="respondInvite(this, 'reject')">거절</button>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ✅ 초대 수락/거절 처리 JS -->
+  <script th:inline="javascript">
+    function respondInvite(button, action) {
+      const projectId = button.getAttribute('data-project-id');
+      fetch('/api/invitation/response', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: action, projectId: projectId })
+      })
+      .then(r => r.json())
+      .then(res => {
+        if (res.success) {
+          alert('처리되었습니다.');
+          location.reload();
+        } else {
+          alert(res.error || '처리 실패');
+        }
+      })
+      .catch(() => alert('처리 중 오류 발생'));
+    }
+  </script>
+</div>
 </body>
 </html>

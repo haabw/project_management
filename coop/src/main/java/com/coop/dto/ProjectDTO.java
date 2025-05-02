@@ -2,19 +2,21 @@ package com.coop.dto;
 
 import java.time.LocalDateTime;
 
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.Getter;
 
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Getter
 @Builder
-@Data
 public class ProjectDTO {
-	private Integer projectId;
+	private int projectId;
 	private String projectName;
-	private int ownerId;
 	private LocalDateTime createDate;
+
+	public ProjectDTO(int projectId, String projectName, LocalDateTime createDate) {
+		super();
+		this.projectId = projectId;
+		this.projectName = projectName;
+		this.createDate = createDate;
+	}
+
 }
