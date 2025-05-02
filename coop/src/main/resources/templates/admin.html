@@ -15,10 +15,10 @@
 <body>
 <div layout:fragment="content">
  <div class="admin-tabs">
-    <a th:href="@{/admin?section=dashboard}" th:classappend="${section=='dashboard'} ? 'active' : ''">대시보드</a>
-    <a th:href="@{/admin?section=members}" th:classappend="${section=='members'} ? 'active' : ''">팀원 관리</a>
-    <a th:href="@{/admin?section=permissions}" th:classappend="${section=='permissions'} ? 'active' : ''">권한 설정</a>
-    <a th:href="@{/admin?section=chat}" th:classappend="${section=='chat'} ? 'active' : ''">채팅 이력</a>
+    <a th:href="@{/admin(section='dashboard', projectId=${projectId})}" th:classappend="${section=='dashboard'} ? 'active' : ''">대시보드</a>
+    <a th:href="@{/admin(section='members', projectId=${projectId})}" th:classappend="${section=='members'} ? 'active' : ''">팀원 관리</a>
+    <a th:href="@{/admin(section='permissions', projectId=${projectId})}" th:classappend="${section=='permissions'} ? 'active' : ''">권한 설정</a>
+    <a th:href="@{/admin(section='chat', projectId=${projectId})}" th:classappend="${section=='chat'} ? 'active' : ''">채팅 이력</a>
   </div>
 
   <!-- 데이터 전달용 hidden 요소 -->
