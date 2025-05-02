@@ -1,23 +1,39 @@
 <div th:fragment="sidebar" class="sidebar-middle" id="middleSidebar">
-    <div id="project-list">
-        </div>
 
-    <div class="mb-2">
-        <a href="/admin" class="btn btn-primary w-100">Admin</a>
-    </div>
-    <div class="mb-2">
-        <a id="chat-link" href="#" class="btn btn-info w-100">Chat</a>
-    </div>
-    <div class="mb-2">
-        <a href="/gantt" class="btn btn-primary w-100">Gantt</a>
-    </div>
-    <div class="mb-2">
-        <a href="/mindmap" class="btn btn-primary w-100">Mindmap</a>
-    </div>
+	<!-- 회사 이름 -->
+	<div class="team-header">
+		<div class="team-name">COOP</div>
+		<!-- 사이드바 닫기 아이콘 -->
+		<div class="toggle-hover" id="closeToggle">←</div>
+	</div>
 
-    <div class="add-project" onclick="showAddInput()">프로젝트 추가</div>
-    <div class="resizer" id="resizer"></div>
+	<!-- 프로필 -->
+	<div class="profile-box">
+		<div class="circle-icon">👤</div>
+		<span sec:authentication="name">이름</span>
+	</div>
 
-    <input type="hidden" id="current-user-id" th:value="${#authentication.principal != null ? #authentication.principal.id : ''}"/>
-    <input type="hidden" id="current-user-name" th:value="${#authentication.principal != null ? #authentication.name : ''}"/>
-    </div>
+
+
+	<!-- 프로젝트 리스트 -->
+	<div id="project-list">
+		<!-- JS로 동적 렌더링 -->
+	</div>
+
+
+	<div class="mb-2">
+		<a href="/admin" class="btn btn-primary">Admin</a>
+	</div>
+	<div class="mb-2">
+		<a href="/chat" class="btn btn-primary">Chat</a>
+	</div>
+	<div class="mb-2">
+		<a href="/gantt" class="btn btn-primary">Gantt</a>
+	</div>
+	<div class="mb-2">
+		<a href="/mindmap" class="btn btn-primary">Mindmap</a>
+	</div>
+
+	<div class="add-project" onclick="showAddInput()">프로젝트 추가</div>
+	<div class="resizer" id="resizer"></div>
+</div>
