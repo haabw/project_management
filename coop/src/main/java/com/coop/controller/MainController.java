@@ -120,28 +120,28 @@ public class MainController {
 		this.projectService = projectService;
 	}
 
-	@PostMapping("/add")
-	@ResponseBody
-	public ProjectDTO add(@RequestBody ProjectDTO projectDTO) {
-		return projectService.createProject(projectDTO);
-	}
+	@PostMapping("/projects/add")
+	  @ResponseBody
+	  public ProjectDTO add(@RequestBody ProjectDTO projectDTO) {
+	    return projectService.createProject(projectDTO);
+	  }
 
-	@GetMapping("/list")
-	@ResponseBody
-	public List<ProjectDTO> list() {
-		return projectService.getAllProjects();
-	}
+	  @GetMapping("/projects/list")
+	  @ResponseBody
+	  public List<ProjectDTO> list() {
+	    return projectService.getAllProjects();
+	  }
 
-	@PutMapping("/update")
-	@ResponseBody
-	public ProjectDTO update(@RequestBody ProjectDTO projectDTO) {
-		return projectService.updateProject(projectDTO.getProjectId(), projectDTO);
-	}
+	  @PutMapping("/projects/update")
+	  @ResponseBody
+	  public ProjectDTO update(@RequestBody ProjectDTO projectDTO) {
+	    return projectService.updateProject(projectDTO.getProjectId(), projectDTO);
+	  }
 
-	@DeleteMapping("/delete/{id}")
-	@ResponseBody
-	public void delete(@PathVariable int id) {
-		projectService.deleteProject(id);
-	}
+	  @DeleteMapping("/projects/delete/{id}")
+	  @ResponseBody
+	  public void delete(@PathVariable int id) {
+	    projectService.deleteProject(id);
+	  }
 	// 프로젝트---------------------------------------------------------------------------
 }
