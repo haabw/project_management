@@ -11,6 +11,7 @@ import com.coop.dto.ProjectDTO;
 import com.coop.entity.ProjectEntity;
 import com.coop.repository.ProjectRepository;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -47,9 +48,18 @@ public class ProjectService {
 	}
 
 	/* 프로젝트 삭제 */
-	public void deleteProject(int id) {
-		projectRepository.deleteById(id);
-	}
+	@Transactional
+    public void deleteProject(int id) {
+        // 1) 자식까지 한 번에 로딩
+        ProjectEntity project = projectRepository.findWithMembersById(id)
+            .orElseThrow(() -> new EntityNotFoundException("프로젝트 없음: " + id));
+
+        // 2) 컬렉션 비우기 → orphanRemoval 작동해서 project_members 삭제 SQL 생성
+        project.getMembers().clear();
+
+        // 3) 부모 삭제 → cascade REMOVE(혹은 orphanRemoval) 적용
+        projectRepository.delete(project);
+    }
 
 	/* 엔티티 DTO 변환 */
 	private ProjectDTO mapToDTO(ProjectEntity e) {
