@@ -1681,7 +1681,7 @@ GanttMaster.prototype.setHoursOn = function(startWorkingHour,endWorkingHour,date
   Date.workingPeriodResolution=resolution;
   millisInWorkingDay=endWorkingHour-startWorkingHour;
 };
-=======
+
 /*
  Copyright (c) 2012-2018 Open Lab
  Written by Roberto Bicchierai and Silvia Chelazzi http://roberto.open-lab.com
