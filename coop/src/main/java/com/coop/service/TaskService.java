@@ -43,7 +43,7 @@ public class TaskService {
         task.setProgress(dto.getProgress());
         task.setStatus(dto.getStatus());
         task.setParentId(dto.getParentId());
-        task.setAssignedId(dto.getAssigneeId());
+        task.setAssigneeId(dto.getAssigneeId());
 
         TaskEntity updated = taskRepository.save(task); // 갱신된 Task 저장
         return convertToDTO(updated); // DTO로 변환하여 반환
@@ -59,7 +59,7 @@ public class TaskService {
         dto.setProgress(task.getProgress());
         dto.setStatus(task.getStatus());
         dto.setParentId(task.getParentId());
-        dto.setAssigneeId(task.getAssignedId());
+        dto.setAssigneeId(task.getAssigneeId());
         return dto;
     }
     // DTO -> Entity 변환 메서드
@@ -73,7 +73,7 @@ public class TaskService {
         task.setProgress(dto.getProgress());
         task.setStatus(dto.getStatus());
         task.setParentId(dto.getParentId());
-        task.setAssignedId(dto.getAssigneeId());
+        task.setAssigneeId(dto.getAssigneeId());
         return task;
     }
 }

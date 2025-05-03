@@ -5,12 +5,39 @@
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
   <title>간트 차트</title>
 
- <link rel="stylesheet" href="/css/gantt.css" type="text/css" />
+  <link rel=stylesheet href="/css/platform.css" type="text/css">
+  <link rel=stylesheet href="/css/jquery.dateField.css" type="text/css">
+
+  <link rel=stylesheet href="/css/gantt.css" type="text/css">
 
   <script src="http://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
   <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
-  
-  <script src="/js/gantt.js"></script>
+
+  <script src="/js/gantt_js/libs/jquery/jquery.livequery.1.1.1.min.js"></script>
+  <script src="/js/gantt_js/libs/jquery/jquery.timers.js"></script>
+
+  <script src="/js/gantt_js/libs/utilities.js"></script>
+  <script src="/js/gantt_js/libs/forms.js"></script>
+  <script src="/js/gantt_js/libs/date.js"></script>
+  <script src="/js/gantt_js/libs/dialogs.js"></script>
+  <script src="/js/gantt_js/libs/layout.js"></script>
+  <script src="/js/gantt_js/libs/i18nJs.js"></script>
+  <script src="/js/gantt_js/libs/jquery/dateField/jquery.dateField.js"></script>
+  <script src="/js/gantt_js/libs/jquery/JST/jquery.JST.js"></script>
+
+
+  <script type="text/javascript" src="/js/gantt_js/libs/jquery/svg/jquery.svg.min.js"></script>
+  <script type="text/javascript" src="/js/gantt_js/libs/jquery/svg/jquery.svgdom.1.8.js"></script>
+
+
+  <script src="/js/gantt_js/ganttUtilities.js"></script>
+  <script src="/js/gantt_js/ganttTask.js"></script>
+  <script src="/js/gantt_js/ganttDrawerSVG.js"></script>
+  <script src="/js/gantt_js/ganttZoom.js"></script>
+  <script src="/js/gantt_js/ganttGridEditor.js"></script>
+  <script src="/js/gantt_js/ganttMaster.js"></script>  
+
+
 </head>
 <body style="background-color: #fff;">
 
@@ -75,13 +102,55 @@ function upload(uploadedFile) {
 }
 
 function saveGanttOnServer() {
+	  console.log("저장 요청 시작 ✅");
+
 	  const prj = ge.saveProject();
 
-	  const filename = prompt("저장할 파일명을 입력하세요 (예: Gantt.html)", "Gantt.html");
-	  if (!filename) return; 
-	  
-	  download(JSON.stringify(prj, null, '\t'), filename, "application/json");
+	  if (!prj.tasks || prj.tasks.length === 0) {
+	    alert("저장할 작업이 없습니다.");
+	    return;
+	  }
+
+	  function formatDate(dateString) {
+	    if (!dateString) return null;
+	    const date = new Date(dateString);
+	    return date.toISOString().split("T")[0]; // yyyy-MM-dd
+	  }
+
+	  prj.tasks.forEach(task => {
+	    const dto = {
+	      name: task.name || "작업명 없음",
+	      start: formatDate(task.start),
+	      end: formatDate(task.end),
+	      duration: task.duration || 1,
+	      progress: parseInt(task.progress) || 0,
+	      status: task.status || "진행중",
+	      parentId: task.parent || null,
+	      assigneeId: 1
+	    };
+
+	    fetch("/api/tasks", {
+	      method: "POST",
+	      headers: {
+	        "Content-Type": "application/json"
+	      },
+	      body: JSON.stringify(dto)
+	    })
+	    .then(res => {
+	      if (!res.ok) throw new Error("저장 실패");
+	      return res.json();
+	    })
+	    .then(data => {
+	      console.log("✅ 저장 완료:", data);
+	    })
+	    .catch(error => {
+	      console.error("❌ 저장 실패:", error);
+	    });
+	  });
+
+	  alert("서버로 저장 요청을 전송했습니다.");
 	}
+
 
 
 function download(data, filename, type) {
