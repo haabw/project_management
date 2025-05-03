@@ -1,6 +1,8 @@
 package com.coop.entity;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -25,10 +27,17 @@ public class ProjectEntity {
 	@Column(name = "create_date")
 	private LocalDateTime createDate;
 
-	public ProjectEntity(int projectId, String projectName, LocalDateTime createDate) {
+	@Builder.Default
+	@OneToMany(mappedBy = "project", cascade = CascadeType.REMOVE, orphanRemoval = true)
+	private List<ProjectMemberEntity> members = new ArrayList<>();
+
+	public ProjectEntity(int projectId, String projectName, LocalDateTime createDate,
+			List<ProjectMemberEntity> members) {
+		super();
 		this.projectId = projectId;
 		this.projectName = projectName;
 		this.createDate = createDate;
+		this.members = members;
 	}
 
 }

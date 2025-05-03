@@ -7,26 +7,6 @@ const left = document.getElementById("leftSidebar");
 let isResizing = false;
 let isFloatingLocked = false;
 
-// --- 점 3개 메뉴 토글 (공통) ---
-window.currentlyOpenAction = null;
-function toggleActions(el) {
-	const menu = el.querySelector(".project-actions");
-	if (window.currentlyOpenAction && window.currentlyOpenAction !== menu) {
-		window.currentlyOpenAction.style.display = "none";
-	}
-	const isOpen = menu.style.display === "block";
-	menu.style.display = isOpen ? "none" : "block";
-	window.currentlyOpenAction = isOpen ? null : menu;
-}
-
-document.addEventListener("click", function(e) {
-	const insideActions = e.target.closest(".project-actions");
-	const insideDots = e.target.closest(".menu-dots");
-	if (!insideActions && !insideDots && window.currentlyOpenAction) {
-		window.currentlyOpenAction.style.display = "none";
-		window.currentlyOpenAction = null;
-	}
-});
 
 
 // --- 리사이징 시작 ---
@@ -91,195 +71,138 @@ closeToggle.addEventListener("click", () => {
 
 /* 프로젝트 관리 사이드바 스크립트 */
 
-// —————————— 전역 설정 ——————————
-const listEl = document.getElementById("project-list");
+// sidebar.js
+(() => {
+	document.addEventListener('DOMContentLoaded', initSidebar);
 
-// 페이지 로드 시: 프로젝트 리스트 불러오기 + 이벤트 위임 설정
-document.addEventListener("DOMContentLoaded", () => {
-	loadProjects();
-	setupEventDelegation();
-});
+	function initSidebar() {
+		const addBtn = document.getElementById('addProjectBtn');
+		const projectList = document.getElementById('project-list');
+		const template = document.getElementById('project-item-template');
+		const addModalEl = document.getElementById('addProjectModal');
+		const addModal = new bootstrap.Modal(addModalEl);
+		const nameInput = document.getElementById('projectNameInput');
+		const confirmAddBtn = document.getElementById('confirmAddProjectBtn');
 
+		// 1) 초기 로드: DB에서 프로젝트 목록 가져오기
+		fetch('/projects/list')
+			.then(res => res.json())
+			.then(data => data.forEach(p => appendProject(p)))
+			.catch(console.error);
 
-// —————————— 프로젝트 리스트 로드 ——————————
-function loadProjects() {
-	fetch("/list",{ credentials: "same-origin" })
-		.then(res => res.json())
-		.then(projects => {
-			listEl.innerHTML = "";           // 기존 목록 초기화
-			projects.forEach(renderProject); // 프로젝트마다 렌더링
-		})
-		.catch(err => console.error("프로젝트 로드 실패", err));
-}
+		// 2) “프로젝트 추가” 버튼 → 모달 열기
+		addBtn.addEventListener('click', () => {
+			nameInput.value = '';
+			nameInput.classList.remove('is-invalid');
+			addModal.show();
+		});
 
-
-// —————————— 이벤트 위임 설정 ——————————
-function setupEventDelegation() {
-	listEl.addEventListener("click", e => {
-		// 1) 수정 · 삭제 버튼 클릭 먼저 처리
-		const action = e.target.closest(".action-edit, .action-delete");
-		if (action) {
-			const tab = action.closest(".project-tab");
-			const id = tab.dataset.id;
-			if (action.classList.contains("action-edit")) {
-				const oldName = tab.querySelector(".project-name").textContent;
-				startEdit(tab, id, oldName);
-			} else {
-				deleteProjectHandler(id);
+		// 3) 모달 “추가” 클릭 → API 호출
+		confirmAddBtn.addEventListener('click', () => {
+			const name = nameInput.value.trim();
+			if (!name) {
+				nameInput.classList.add('is-invalid');
+				return;
 			}
-			return;
+			addModal.hide();
+			fetch('/projects/add', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ projectName: name })
+			})
+				.then(res => res.json())
+				.then(newProj => appendProject(newProj))
+				.catch(console.error);
+		});
+
+		// 4) 수정·삭제 이벤트 위임
+		projectList.addEventListener('click', e => {
+			// 수정/삭제 링크를 클릭했을 때만 기본 동작을 막고 처리
+			if (e.target.matches('.edit-project') || e.target.matches('.delete-project')) {
+				e.preventDefault();
+				const id = e.target.dataset.id;
+				if (!id) return;
+
+				// 수정
+				if (e.target.matches('.edit-project')) {
+
+
+					const oldName = e.target.closest('.accordion-item')
+						.querySelector('.accordion-button').textContent;
+					const newName = prompt('프로젝트 이름 수정', oldName);
+					if (!newName?.trim()) return;
+					fetch('/projects/update', {
+						method: 'PUT',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ projectId: Number(id), projectName: newName.trim() })
+					})
+						.then(res => res.json())
+						.then(updated => {
+							e.target.closest('.accordion-item')
+								.querySelector('.accordion-button')
+								.textContent = updated.projectName;
+						})
+						.catch(console.error);
+				}
+				// 삭제
+				else {
+
+					if (!confirm('정말 삭제하시겠습니까?')) return;
+					fetch(`/projects/delete/${id}`, { method: 'DELETE' })
+						.then(() => {
+							e.target.closest('.accordion-item').remove();
+						})
+						.catch(console.error);
+				}
+			}
+		});
+
+		// ─── 프로젝트 리스트 렌더링 ───────────────────────────────────────────
+		function appendProject(proj) {
+			const clone = template.content.cloneNode(true);
+			const item = clone.querySelector('.accordion-item');
+			const btn = clone.querySelector('.accordion-button');
+			const collapse = clone.querySelector('.accordion-collapse');
+			const dropdown = clone.querySelector('[data-bs-toggle="dropdown"]');
+			const editLink = clone.querySelector('.edit-project');
+			const delLink = clone.querySelector('.delete-project');
+
+			const headerId = `heading-${proj.projectId}`;
+			const collapseId = `collapse-${proj.projectId}`;
+
+			item.dataset.id = proj.projectId;
+			btn.textContent = proj.projectName;
+			btn.setAttribute('data-bs-target', `#${collapseId}`);
+			btn.setAttribute('aria-controls', collapseId);
+
+			collapse.id = collapseId;
+			collapse.setAttribute('aria-labelledby', headerId);
+			collapse.setAttribute('data-bs-parent', '#project-list');
+
+			dropdown.id = `dropdown-${proj.projectId}`;
+			clone.querySelector('.dropdown-menu')
+				.setAttribute('aria-labelledby', dropdown.id);
+
+			editLink.dataset.id = proj.projectId;
+			delLink.dataset.id = proj.projectId;
+
+			// ✅ 버튼 삽입
+			const body = clone.querySelector('.accordion-body');
+			const buttonGroup = document.createElement('div');
+			buttonGroup.className = 'mt-2';
+
+			// 버튼들 생성
+			buttonGroup.innerHTML = `
+				<a class="btn btn-outline-primary btn-sm w-100 mb-1" href="/gantt?projectId=${proj.projectId}">Gantt</a>
+				<a class="btn btn-outline-primary btn-sm w-100 mb-1" href="/mindmap?projectId=${proj.projectId}">Mindmap</a>
+				<a class="btn btn-outline-primary btn-sm w-100 mb-1" href="/admin?projectId=${proj.projectId}">Admin</a>
+				<a class="btn btn-outline-primary btn-sm w-100 mb-1" href="/chat?projectId=${proj.projectId}">Chat</a>
+			`;
+
+			body.appendChild(buttonGroup);
+
+			projectList.appendChild(item);
 		}
-
-		// 2) ⋯ 메뉴 토글은 그 다음
-		const dot = e.target.closest(".menu-dots");
-		if (dot) {
-			toggleActions(dot);
-		}
-	});
-
-	// 키다운 이벤트 (수정 input 엔터 / Esc)
-	listEl.addEventListener("keydown", e => {
-		if (!e.target.classList.contains("edit-input")) return;
-
-		if (e.key === "Enter") {
-			const tab = e.target.closest(".project-tab");
-			const id = tab.dataset.id;
-			const newName = e.target.value.trim();
-			if (!newName) return alert("이름을 입력하세요.");
-			updateProjectHandler(id, newName);
-		}
-
-		if (e.key === "Escape") {
-			loadProjects();  // Esc 누르면 취소하고 전체 재로드
-		}
-	});
-}
-
-
-// —————————— 프로젝트 한 개 렌더링 ——————————
-function renderProject(p) {
-	const tab = document.createElement("div");
-	tab.className = "project-tab";
-	tab.dataset.id = p.projectId;
-
-	const nameSpan = document.createElement("span");
-	nameSpan.textContent = p.projectName;
-	nameSpan.className = "project-name";
-
-	const menuGroup = document.createElement("div");
-	menuGroup.className = "menu-group";
-	menuGroup.innerHTML = `
-		<div class="dropdown-arrow">▼</div>
-		<div class="menu-dots">
-			<span></span><span></span><span></span>
-			<div class="project-actions">
-				<div class="action-edit">수정</div>
-				<div class="action-delete">삭제</div>
-			</div>
-		</div>
-	`;
-
-	tab.append(nameSpan, menuGroup);
-	listEl.append(tab);
-}
-
-
-// —————————— 프로젝트 추가 입력창 띄우기 ——————————
-function showAddInput() {
-	const existingInput = listEl.querySelector('input[type="text"]');
-	if (existingInput) {
-		existingInput.focus();
-		return;
+		// ────────────────────────────────────────────────────────────────────
 	}
-
-	const input = document.createElement("input");
-	input.type = "text";
-	input.placeholder = "새 프로젝트명 입력";
-	input.className = "form-control mb-2";
-	listEl.prepend(input);
-	input.focus();
-	bindSaveOnEnter(input);
-}
-
-function bindSaveOnEnter(input) {
-	input.addEventListener("keydown", e => {
-		// 1) Esc 누르면 입력창만 제거 (취소)
-		        if (e.key === "Escape") {
-		            input.remove();
-		            return;
-		        }
-		if (e.key !== "Enter") return;
-
-		const name = input.value.trim();
-		if (!name) return alert("프로젝트 이름을 입력하세요.");
-
-		fetch(`/add`, {
-			method: "POST",
-			credentials: "same-origin",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ projectName: name })
-		})
-			.then(res => {
-				if (!res.ok) throw new Error("추가 실패");
-				return res.json();
-			})
-			.then(() => {
-				input.remove();   // 입력창 제거
-				loadProjects();   // 전체 리스트 갱신
-			})
-			.catch(err => {
-				console.error(err);
-				alert(err.message);
-			});
-	});
-}
-
-
-// —————————— 수정 처리 ——————————
-function startEdit(tab, id, oldName) {
-	tab.innerHTML = "";
-	const input = document.createElement("input");
-	input.type = "text";
-	input.value = oldName;
-	input.className = "form-control form-control-sm flex-grow-1 edit-input";
-	tab.append(input);
-	input.focus();
-}
-
-function updateProjectHandler(id, newName) {
-	fetch(`/update`, {
-		method: "PUT",
-		credentials: "same-origin",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ projectId:   id, projectName: newName })
-	})
-		.then(res => {
-			if (!res.ok) throw new Error("수정 실패");
-			return res.json();
-		})
-		.then(() => loadProjects())
-		.catch(err => {
-			console.error(err);
-			alert(err.message);
-			loadProjects();
-		});
-}
-
-
-// —————————— 삭제 처리 ——————————
-function deleteProjectHandler(id) {
-	if (!confirm("정말 삭제하시겠습니까?")) return;
-	fetch(`/delete/${id}`, {
-		method: "DELETE",
-		credentials: "same-origin"
-	})
-		.then(res => {
-			if (!res.ok) throw new Error("삭제 실패");
-			loadProjects();
-		})
-		.catch(err => {
-			console.error(err);
-			alert(err.message);
-			loadProjects();
-		});
-}
+})();
