@@ -722,7 +722,7 @@ GridEditor.prototype.openFullEditor = function (task, editOnlyAssig) {
 
 
 };
-=======
+
 /*
  Copyright (c) 2012-2018 Open Lab
  Written by Roberto Bicchierai and Silvia Chelazzi http://roberto.open-lab.com
