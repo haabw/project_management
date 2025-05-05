@@ -13,6 +13,8 @@ import com.coop.repository.ProjectRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import java.util.Optional; // Optional 임포트 추가!
+import com.coop.entity.ProjectEntity; // ProjectEntity 임포트
 
 @Service
 @RequiredArgsConstructor
@@ -66,4 +68,13 @@ public class ProjectService {
 		return ProjectDTO.builder().projectId(e.getProjectId()).projectName(e.getProjectName())
 				.createDate(e.getCreateDate()).build();
 	}
+    /* 프로젝트 ID로 프로젝트 엔티티를 조회합니다.
+    * @param id 조회할 프로젝트 ID
+    * @return Optional<ProjectEntity> (프로젝트가 없으면 비어있는 Optional)
+    */
+   @Transactional(readOnly = true) // 데이터 조회만 하므로 readOnly 설정
+   public Optional<ProjectEntity> findById(Integer id) {
+       return projectRepository.findById(id);
+   }
+
 }
