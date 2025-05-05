@@ -13,8 +13,8 @@ $(document).ready(function() {
 
         // FormData에 필드 추가
         formData.append("nickname", nickname);
-        if (newPassword) formData.append("newPassword", newPassword);
-        if (confirmPassword) formData.append("confirmPassword", confirmPassword);
+        if (newPassword)      formData.append("password", newPassword);
+        if (confirmPassword)  formData.append("passwordConfirm", confirmPassword);
         if (profilePhoto) formData.append("profileImage", profilePhoto); // DTO 필드명과 일치
 
         // 클라이언트 측 유효성 검사
