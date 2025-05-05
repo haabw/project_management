@@ -1,6 +1,8 @@
 package com.coop.service;
 
+import com.coop.entity.ProjectEntity;
 import com.coop.entity.TaskEntity;
+import com.coop.repository.ProjectRepository;
 import com.coop.repository.TaskRepository;
 import com.coop.dto.TaskDTO;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,41 +16,51 @@ public class TaskService {
 
     @Autowired
     private TaskRepository taskRepository;
-    // 모든 Task 데이터를 가져와서 DTO 리스트로 변환하여 반환
+
+    @Autowired
+    private ProjectRepository projectRepository;
+
+    // 모든 Task 데이터를 가져와서 DTO 리스트로 반환
     public List<TaskDTO> getAllTasks() {
-        List<TaskEntity> tasks = taskRepository.findAll(); // DB에서 모든 TaskEntity 조회
+        List<TaskEntity> tasks = taskRepository.findAll();
         return tasks.stream()
-                .map(this::convertToDTO) // Entity를 DTO로 변환
+                .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
-    // Task 데이터를 저장하고 저장된 결과를 DTO로 반환
+
+    // Task 저장
     public TaskDTO saveTask(TaskDTO dto) {
-        TaskEntity task = convertToEntity(dto); // DTO를 Entity로 변환
-        TaskEntity saved = taskRepository.save(task); // DB에 저장
-        return convertToDTO(saved); // 저장된 Entity를 DTO로 변환하여 반환
+        TaskEntity task = convertToEntity(dto);
+        TaskEntity saved = taskRepository.save(task);
+        return convertToDTO(saved);
     }
-    // ID를 기반으로 Task를 삭제
+
+    // Task 삭제
     public void deleteTask(Integer id) {
-        taskRepository.deleteById(id); // 해당 ID의 Task를 DB에서 삭제
+        taskRepository.deleteById(id);
     }
-    // 특정 ID의 Task를 갱신하고 결과를 DTO로 반환
+
+    // Task 수정
     public TaskDTO updateTask(Integer id, TaskDTO dto) {
         TaskEntity task = taskRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Task not found")); // ID로 조회, 없으면 예외
-        // DTO로부터 값들을 업데이트
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+
+        ProjectEntity project = projectRepository.findById(dto.getProjectId())
+                .orElseThrow(() -> new RuntimeException("Project not found"));
+
         task.setName(dto.getName());
         task.setStart(dto.getStart());
         task.setEnd(dto.getEnd());
         task.setDuration(dto.getDuration());
         task.setProgress(dto.getProgress());
         task.setStatus(dto.getStatus());
-        task.setParentId(dto.getParentId());
-        task.setAssigneeId(dto.getAssigneeId());
+        task.setProject(project);
 
-        TaskEntity updated = taskRepository.save(task); // 갱신된 Task 저장
-        return convertToDTO(updated); // DTO로 변환하여 반환
+        TaskEntity updated = taskRepository.save(task);
+        return convertToDTO(updated);
     }
-	// Entity -> DTO 변환 메서드
+
+    // Entity -> DTO
     private TaskDTO convertToDTO(TaskEntity task) {
         TaskDTO dto = new TaskDTO();
         dto.setId(task.getId());
@@ -58,11 +70,13 @@ public class TaskService {
         dto.setDuration(task.getDuration());
         dto.setProgress(task.getProgress());
         dto.setStatus(task.getStatus());
-        dto.setParentId(task.getParentId());
-        dto.setAssigneeId(task.getAssigneeId());
+        dto.setAssigneeId(task.getAssignee() != null ? task.getAssignee().getId() : null);
+        dto.setAssigneeName(task.getAssignee() != null ? task.getAssignee().getUsername() : null);
+        dto.setProjectId(task.getProject() != null ? task.getProject().getProjectId() : null);
         return dto;
     }
-    // DTO -> Entity 변환 메서드
+
+    // DTO -> Entity
     private TaskEntity convertToEntity(TaskDTO dto) {
         TaskEntity task = new TaskEntity();
         task.setId(dto.getId());
@@ -72,9 +86,18 @@ public class TaskService {
         task.setDuration(dto.getDuration());
         task.setProgress(dto.getProgress());
         task.setStatus(dto.getStatus());
-        task.setParentId(dto.getParentId());
-        task.setAssigneeId(dto.getAssigneeId());
+
+        if (dto.getProjectId() != null) {
+            ProjectEntity project = projectRepository.findById(dto.getProjectId())
+                    .orElseThrow(() -> new RuntimeException("Project not found"));
+            task.setProject(project);
+        }
+
         return task;
     }
+public List<TaskDTO> getTasksByProjectId(Integer projectId) {
+    return taskRepository.findByProject_ProjectId(projectId).stream()
+            .map(this::convertToDTO)
+            .collect(Collectors.toList());
+	}
 }
-
