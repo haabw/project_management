@@ -1,10 +1,481 @@
-<!DOCTYPE html>
+<!DOCTYPE HTML>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Insert title here?</title>
+  <meta http-equiv="X-UA-Compatible" content="IE=9; IE=8; IE=7; IE=EDGE"/>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <title>간트 차트</title>
+
+  <link rel=stylesheet href="/css/platform.css" type="text/css">
+  <link rel=stylesheet href="/css/jquery.dateField.css" type="text/css">
+
+  <link rel=stylesheet href="/css/gantt.css" type="text/css">
+
+  <script src="http://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+  <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+
+  <script src="/js/gantt_js/libs/jquery/jquery.livequery.1.1.1.min.js"></script>
+  <script src="/js/gantt_js/libs/jquery/jquery.timers.js"></script>
+
+  <script src="/js/gantt_js/libs/utilities.js"></script>
+  <script src="/js/gantt_js/libs/forms.js"></script>
+  <script src="/js/gantt_js/libs/date.js"></script>
+  <script src="/js/gantt_js/libs/dialogs.js"></script>
+  <script src="/js/gantt_js/libs/layout.js"></script>
+  <script src="/js/gantt_js/libs/i18nJs.js"></script>
+  <script src="/js/gantt_js/libs/jquery/dateField/jquery.dateField.js"></script>
+  <script src="/js/gantt_js/libs/jquery/JST/jquery.JST.js"></script>
+
+
+  <script type="text/javascript" src="/js/gantt_js/libs/jquery/svg/jquery.svg.min.js"></script>
+  <script type="text/javascript" src="/js/gantt_js/libs/jquery/svg/jquery.svgdom.1.8.js"></script>
+
+
+  <script src="/js/gantt_js/ganttUtilities.js"></script>
+  <script src="/js/gantt_js/ganttTask.js"></script>
+  <script src="/js/gantt_js/ganttDrawerSVG.js"></script>
+  <script src="/js/gantt_js/ganttZoom.js"></script>
+  <script src="/js/gantt_js/ganttGridEditor.js"></script>
+  <script src="/js/gantt_js/ganttMaster.js"></script>  
+
+
 </head>
-<body>
+<body style="background-color: #fff;">
+
+
+
+<div id="workSpace" style="padding:0px; overflow-y:auto; overflow-x:hidden;border:1px solid #e5e5e5;position:relative;margin:0 5px"></div>
+
+<style>
+
+  body {
+    overflow: hidden;
+  }
+
+  .ganttButtonBar h1{
+    color: #000000;
+    font-weight: bold;
+    font-size: 28px;
+    margin-left: 10px;
+  }
+
+</style>
+
+
+<script type="text/javascript">
+
+var ge;
+$(function() {
+  var canWrite=true;
+  ge = new GanttMaster();
+  ge.set100OnClose=true;
+
+  ge.shrinkParent=true;
+
+  ge.init($("#workSpace"));
+  loadI18n();
+  delete ge.gantt.zoom;
+
+  var project=loadFromLocalStorage();
+
+  if (!project.canWrite)
+    $(".ganttButtonBar button.requireWrite").attr("disabled","true");
+
+  ge.loadProject(project);
+  ge.checkpoint(); 
+
+  
+});
+
+function upload(uploadedFile) {
+  var fileread = new FileReader();
+  
+  fileread.onload = function(e) {
+    var content = e.target.result;
+    var intern = JSON.parse(content);
+    
+    ge.loadProject(intern);
+    ge.checkpoint(); 
+
+  };
+
+  fileread.readAsText(uploadedFile);
+}
+
+function saveGanttOnServer() {
+	  console.log("저장 요청 시작 ✅");
+
+	  const prj = ge.saveProject();
+
+	  if (!prj.tasks || prj.tasks.length === 0) {
+	    alert("저장할 작업이 없습니다.");
+	    return;
+	  }
+
+	  function formatDate(dateString) {
+	    if (!dateString) return null;
+	    const date = new Date(dateString);
+	    return date.toISOString().split("T")[0]; // yyyy-MM-dd
+	  }
+
+	  prj.tasks.forEach(task => {
+	    const dto = {
+	      name: task.name || "작업명 없음",
+	      start: formatDate(task.start),
+	      end: formatDate(task.end),
+	      duration: task.duration || 1,
+	      progress: parseInt(task.progress) || 0,
+	      status: task.status || "진행중",
+	      parentId: task.parent || null,
+	      assigneeId: 1
+	    };
+
+	    fetch("/api/tasks", {
+	      method: "POST",
+	      headers: {
+	        "Content-Type": "application/json"
+	      },
+	      body: JSON.stringify(dto)
+	    })
+	    .then(res => {
+	      if (!res.ok) throw new Error("저장 실패");
+	      return res.json();
+	    })
+	    .then(data => {
+	      console.log("✅ 저장 완료:", data);
+	    })
+	    .catch(error => {
+	      console.error("❌ 저장 실패:", error);
+	    });
+	  });
+
+	  alert("서버로 저장 요청을 전송했습니다.");
+	}
+
+
+
+function download(data, filename, type) {
+  var file = new Blob([data], {type: type});
+  if (window.navigator.msSaveOrOpenBlob) // IE10+
+    window.navigator.msSaveOrOpenBlob(file, filename);
+  else {
+    var a = document.createElement("a"),
+      url = URL.createObjectURL(file);
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function() {
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);  
+    }, 0); 
+  }
+}
+
+function newProject(){
+  clearGantt();
+}
+
+
+function clearGantt() {
+  ge.reset();
+}
+
+
+
+function loadFromLocalStorage() {
+	  var ret;
+	  if (localStorage) {
+	    if (localStorage.getObject("teamworkGantDemo")) {
+	      ret = localStorage.getObject("teamworkGantDemo");
+	    }
+	  }
+
+	  if (!ret || !ret.tasks){
+	    ret = {
+	      tasks: [],
+	      resources: [],
+	      roles: [],
+	      canWrite: true,
+	      canDelete: true,
+	      canWriteOnParent: true,
+	      canAdd: true
+	    };
+	  }
+
+	  return ret;
+	}
+
+
+function saveInLocalStorage() {
+  var prj = ge.saveProject();
+
+  if (localStorage) {
+    localStorage.setObject("teamworkGantDemo", prj);
+  }
+}
+
+
+
+</script>
+
+<div id="gantEditorTemplates" style="display:none;">
+<div class="__template__" type="GANTBUTTONS">
+  <!--
+  <div class="ganttButtonBar noprint">
+    <div class="buttons">
+      <button onclick="addNewTask()" style="margin: 10px; padding: 6px 12px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
+  작업 추가
+</button>
+      
+      <button onclick="$('#workSpace').trigger('undo.gantt');return false;" class="button textual icon requireCanWrite" title="undo"><span class="teamworkIcon">&#39;</span></button>
+      <button onclick="$('#workSpace').trigger('redo.gantt');return false;" class="button textual icon requireCanWrite" title="redo"><span class="teamworkIcon">&middot;</span></button>
+      <span class="ganttButtonSeparator requireCanWrite requireCanAdd"></span>
+      <button onclick="$('#workSpace').trigger('moveUpCurrentTask.gantt');return false;" class="button textual icon requireCanWrite requireCanMoveUpDown" title="move up"><span class="teamworkIcon">k</span></button>
+      <button onclick="$('#workSpace').trigger('moveDownCurrentTask.gantt');return false;" class="button textual icon requireCanWrite requireCanMoveUpDown" title="move down"><span class="teamworkIcon">j</span></button>
+      <span class="ganttButtonSeparator requireCanWrite requireCanDelete"></span>
+      <button onclick="$('#workSpace').trigger('deleteFocused.gantt');return false;" class="button textual icon delete requireCanWrite" title="Elimina"><span class="teamworkIcon">&cent;</span></button>
+      <span class="ganttButtonSeparator"></span>
+      
+      <button onclick="$('#workSpace').trigger('zoomMinus.gantt'); return false;" class="button textual icon " title="zoom out"><span class="teamworkIcon">)</span></button>
+      <button onclick="$('#workSpace').trigger('zoomPlus.gantt');return false;" class="button textual icon " title="zoom in"><span class="teamworkIcon">(</span></button>
+    <span class="ganttButtonSeparator"></span>
+      <button onclick="ge.splitter.resize(.1);return false;" class="button textual icon" ><span class="teamworkIcon">F</span></button>
+      <button onclick="ge.splitter.resize(50);return false;" class="button textual icon" ><span class="teamworkIcon">O</span></button>
+      <button onclick="ge.splitter.resize(100);return false;" class="button textual icon"><span class="teamworkIcon">R</span></button>
+      <span class="ganttButtonSeparator"></span>
+      <button onclick="ge.element.toggleClass('colorByStatus' );return false;" class="button textual icon"><span class="teamworkIcon">&sect;</span></button>
+      
+    </div>
+
+    <div>
+      <button onclick="saveGanttOnServer();" class="button first big requireWrite" title="Save" style="background-color: #28a745; color: white; border: none; border-radius: 4px; padding: 8px 16px; cursor: pointer;">
+  Save
+</button>
+      <input type="file" name="load-file" id="load-file">
+      <label for="load-file">Load</label>
+      <button onclick='newProject();' class='button requireWrite newproject'><em>clear project</em></button>
+      </div>
+  </div>
+  -->
+</div>
+
+<div class="__template__" type="TASKSEDITHEAD"><!--
+  <table class="gdfTable" cellspacing="0" cellpadding="0">
+    <thead>
+    <tr style="height:40px">
+      <th class="gdfColHeader" style="width:30px; border-right: none">ID</th>
+      <th class="gdfColHeader" style="width:35px;">상태</th>
+      <th class="gdfColHeader gdfResizable" style="width:100px;">담당자 이름</th>
+      <th class="gdfColHeader gdfResizable" style="width:300px;">작업 이름</th>
+      <th class="gdfColHeader gdfResizable" style="width:80px;">시작 날짜</th>
+      <th class="gdfColHeader gdfResizable" style="width:80px;">완료 날짜</th>
+      <th class="gdfColHeader gdfResizable" style="width:50px;">기간</th>
+      <th class="gdfColHeader gdfResizable" style="width:50px;">완료율</th>
+      <th class="gdfColHeader gdfResizable requireCanSeeDep" style="width:80px;">우선 순위</th>
+      <th class="gdfColHeader gdfResizable" style="width:1000px; text-align: left; padding-left: 10px;">작업자 이름</th>
+    </tr>
+    </thead>
+  </table>
+  --></div>
+
+<div class="__template__" type="TASKROW"><!--
+  <tr id="tid_(#=obj.id#)" taskId="(#=obj.id#)" class="taskEditRow (#=obj.isParent()?'isParent':''#) (#=obj.collapsed?'collapsed':''#)" level="(#=level#)">
+    <th class="gdfCell edit" align="right" style="cursor:pointer;"><span class="taskRowIndex">(#=obj.getRow()+1#)</span> <span class="teamworkIcon" style="font-size:12px;" >e</span></th>
+    <td class="gdfCell noClip" align="center"><div class="taskStatus cvcColorSquare" status="(#=obj.status#)"></div></td>
+    <td class="gdfCell"><input type="text" name="code" value="(#=obj.code?obj.code:''#)" placeholder="담당자 이름"></td>
+    <td class="gdfCell indentCell" style="padding-left:(#=obj.level*10+18#)px;">
+      <div class="exp-controller" align="center"></div>
+      <input type="text" name="name" value="(#=obj.name#)" placeholder="name">
+    </td>
+    <td class="gdfCell"><input type="text" name="start"  value="" class="date"></td>
+    <td class="gdfCell"><input type="text" name="end" value="" class="date"></td>
+    <td class="gdfCell"><input type="text" name="duration" autocomplete="off" value="(#=obj.duration#)"></td>
+    <td class="gdfCell">
+  <input type="text" name="progress" class="validated" entrytype="PERCENTILE" autocomplete="off"
+         value="(#=typeof(obj.progress) !== 'undefined' && obj.progress !== null ? obj.progress + '%' : '0%'#)"style="text-align:right;"
+         (#=obj.progressByWorklog ? "readOnly" : ""#)></td>
+    <td class="gdfCell">
+  <select name="priority">
+    <option value="높음" (#=obj.priority=='높음'?'selected':''#)>높음</option>
+    <option value="보통" (#=obj.priority=='보통'?'selected':''#)>보통</option>
+    <option value="낮음" (#=obj.priority=='낮음'?'selected':''#)>낮음</option></select></td>
+    
+    <td class="gdfCell"><input type="text" name="code" value="(#=obj.code?obj.code:''#)" placeholder="작업자 이름"></td>
+  </tr>
+  --></div>
+
+<div class="__template__" type="TASKEMPTYROW"><!--
+  <tr class="taskEditRow emptyRow" >
+    <th class="gdfCell" align="right"></th>
+    <td class="gdfCell noClip" align="center"></td>
+    <td class="gdfCell"></td>
+    <td class="gdfCell"></td>
+    <td class="gdfCell"></td>
+    <td class="gdfCell"></td>
+    <td class="gdfCell"></td>
+    <td class="gdfCell"></td>
+    <td class="gdfCell"></td>
+    <td class="gdfCell"></td>
+    <td class="gdfCell requireCanSeeDep"></td>
+    <td class="gdfCell"></td>
+  </tr>
+  -->
+</div>
+
+<div class="__template__" type="TASKBAR"></div>
+
+<div class="__template__" type="CHANGE_STATUS"></div>
+<div class="__template__" type="TASK_EDITOR"></div>
+
+<div class="__template__" type="RESOURCE_ROW"><!--
+  <tr resId="(#=obj.id#)" class="resRow" >
+    <td ><input type="text" name="name" value="(#=obj.name#)" style="width:100%;" class="formElements"></td>
+    <td align="center"><span class="teamworkIcon delRes del" style="cursor: pointer">d</span></td>
+  </tr>
+  --></div>
+
+
+</div>
+<script type="text/javascript">
+
+  function loadI18n(){
+    GanttMaster.messages = {
+      "CANNOT_WRITE":"No permission to change the following task:",
+      "CHANGE_OUT_OF_SCOPE":"Project update not possible as you lack rights for updating a parent project.",
+      "START_IS_MILESTONE":"Start date is a milestone.",
+      "END_IS_MILESTONE":"End date is a milestone.",
+      "TASK_HAS_CONSTRAINTS":"Task has constraints.",
+      "GANTT_ERROR_DEPENDS_ON_OPEN_TASK":"Error: there is a dependency on an open task.",
+      "GANTT_ERROR_DESCENDANT_OF_CLOSED_TASK":"Error: due to a descendant of a closed task.",
+      "TASK_HAS_EXTERNAL_DEPS":"This task has external dependencies.",
+      "GANNT_ERROR_LOADING_DATA_TASK_REMOVED":"GANNT_ERROR_LOADING_DATA_TASK_REMOVED",
+      "CIRCULAR_REFERENCE":"Circular reference.",
+      "CANNOT_DEPENDS_ON_ANCESTORS":"Cannot depend on ancestors.",
+      "INVALID_DATE_FORMAT":"The data inserted are invalid for the field format.",
+      "GANTT_ERROR_LOADING_DATA_TASK_REMOVED":"An error has occurred while loading the data. A task has been trashed.",
+      "CANNOT_CLOSE_TASK_IF_OPEN_ISSUE":"Cannot close a task with open issues",
+      "TASK_MOVE_INCONSISTENT_LEVEL":"You cannot exchange tasks of different depth.",
+      "CANNOT_MOVE_TASK":"CANNOT_MOVE_TASK",
+      "PLEASE_SAVE_PROJECT":"PLEASE_SAVE_PROJECT",
+      "GANTT_SEMESTER":"Semester",
+      "GANTT_SEMESTER_SHORT":"s.",
+      "GANTT_QUARTER":"Quarter",
+      "GANTT_QUARTER_SHORT":"q.",
+      "GANTT_WEEK":"Week",
+      "GANTT_WEEK_SHORT":"w."
+    };
+  }
+
+
+
+  
+
+$(document).on("change", "#load-file", function() {
+  var uploadedFile = $("#load-file").prop("files")[0];
+  upload(uploadedFile);
+});
+
+
+
+function addNewTask() {
+	  ge.beginTransaction();
+
+	  const factory = new TaskFactory();
+	  const newId = new Date().getTime();
+	  const now = new Date().getTime();
+
+	  const task = factory.build(
+	    newId,
+	    "새 작업",
+	    "",
+	    0,
+	    now,
+	    3
+	  );
+
+	  ge.addTask(task);
+	  ge.endTransaction();
+	}
+
+document.addEventListener("keydown", function (e) {
+    if (e.altKey && e.key === "ArrowUp") {
+      $("#workSpace").trigger("moveUpCurrentTask.gantt");
+    }
+    if (e.altKey && e.key === "ArrowDown") {
+      $("#workSpace").trigger("moveDownCurrentTask.gantt");
+    }
+  });
+  
+$(document).on('input', 'input[name="progress"]', function () {
+    let val = $(this).val().replace('%', '');
+    if (!isNaN(val) && val !== '') {
+      $(this).val(val + '%');
+    } else {
+      $(this).val('');
+    }
+  });
+
+$(document).on('blur', 'input[name="progress"]', function () {
+	    let val = $(this).val().replace('%', '');
+	    $(this).val(val + '%');
+	  });
+
+	  const oldRedraw = GanttMaster.prototype.redraw;
+GanttMaster.prototype.redraw = function () {
+  const result = oldRedraw.apply(this, arguments);
+  
+  $('input[name="progress"]').each(function () {
+    const val = $(this).val().replace('%', '');
+    if (!isNaN(val) && val !== '') {
+      $(this).val(parseFloat(val) + '%');
+    } else {
+      $(this).val('0%');
+    }
+  });
+
+  return result;
+};
+
+document.addEventListener('keydown', function (e) {
+	  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+	    e.preventDefault();
+	    saveInLocalStorage();
+	    alert("작업이 저장되었습니다.");
+	  }
+	});
+	
+function convertToText(project) {
+	  let output = "작업 목록\n\n";
+	  project.tasks.forEach(task => {
+	    output += `[${task.id}] ${task.name} - ${task.start} ~ ${task.end || "?"} (${task.duration}일)\n`;
+	    output += `우선순위: ${task.priority || "보통"}, 완료율: ${task.progress || 0}%\n\n`;
+	  });
+	  return output;
+	}
+
+	function downloadText(content, filename, mime) {
+	  const blob = new Blob([content], { type: mime });
+	  const url = URL.createObjectURL(blob);
+	  const a = document.createElement("a");
+	  a.href = url;
+	  a.download = filename;
+	  a.click();
+	  URL.revokeObjectURL(url);
+	}
+
+	function saveAsCustomText() {
+	  const project = ge.saveProject();
+	  const filename = prompt("저장할 파일명을 입력하세요 (예: Gantt.html)", "Gantt.html");
+	  if (!filename) return;
+	  const text = convertToText(project);
+	  downloadText(text, filename, "text/plain");
+	}
+</script>
+
+
+
+
+
 
 </body>
 </html>
