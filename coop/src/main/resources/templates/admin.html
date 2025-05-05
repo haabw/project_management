@@ -11,6 +11,10 @@
   <link rel="stylesheet" th:href="@{/css/submenu.css}"/>
   <link rel="stylesheet" th:href="@{/css/admin.css}"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- flatpickr 날짜 선택기용 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
 </head>
 <body>
 <div layout:fragment="content">
@@ -126,16 +130,75 @@
   </section>
 
   <!-- 채팅 이력 -->
-  <section th:if="${section=='chat'}">
-    <h2>채팅 이력</h2>
-    <ul>
-      <li th:each="c : ${chatLogs}">
-        <strong th:text="${c.user.nickname}">user</strong>:
-        <span th:text="${c.message}">message</span>
-        <small th:text="${c.timestamp}">time</small>
-      </li>
-    </ul>
-  </section>
+<section th:if="${section=='chat'}">
+  <h2 style="margin-bottom: 1rem;">채팅 로그</h2>
+
+  <!-- 필터 영역 -->
+  <form method="get" th:action="@{/admin}" style="display:flex; align-items: center; gap:0.5rem; margin-bottom: 1rem;">
+    <input type="hidden" name="section" value="chat"/>
+    <input type="hidden" name="projectId" th:value="${projectId}"/>
+
+    
+  <input type="text" name="fromDate" class="datepicker" th:value="${fromDate}" placeholder="시작일">
+<span>~</span>
+<input type="text" name="toDate" class="datepicker" th:value="${toDate}" placeholder="종료일">
+
+  
+    <input type="text" name="keyword" placeholder="작성자 또는 내용" style="width: 160px;" />
+    <button type="submit" class="btn-search" >검색하기</button>
+  </form>
+
+  <!-- 채팅 로그 테이블 -->
+  <table style="width:100%; border-collapse:collapse; text-align:left;">
+    <thead style="background-color:#f5f5f5;">
+      <tr>
+<th style="padding:0.5rem; border:1px solid #ccc; width: 160px; background-color:#f0f8ff;">생성일시</th>
+          <th style="padding:0.5rem; border:1px solid #ccc; width: 200px; background-color:#f0f8ff;">작성자</th>
+          <th style="padding:0.5rem; border:1px solid #ccc; background-color:#f0f8ff;">내용</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr th:each="c : ${chatLogs}">
+          <td style="padding-left:0.5rem;" th:text="${#temporals.format(c.timestamp, 'yyyy-MM-dd HH:mm')}">2024-01-01 10:00</td>
+          <td style="padding-left:0.5rem;" th:text="${c.user.nickname}">작성자</td>
+          <td style="padding-left:0.5rem;" th:text="${c.message}">메시지 내용</td>
+      </tr>
+    </tbody>
+  </table>
+
+ <!-- 페이지네이션 -->
+<div class="pagination-wrapper" style="margin-top:1rem; text-align:left;">
+  <div th:if="${totalPages > 1}">
+  <!-- 이전 화살표 -->
+<a th:href="${currentPage > 1} ? @{/admin(
+    section='chat', 
+    projectId=${projectId}, 
+    page=${currentPage - 1}, 
+    fromDate=${fromDate}, 
+    toDate=${toDate}, 
+    category=${category}, 
+    keyword=${keyword}
+)} : '#'" 
+   th:classappend="${currentPage == 1} ? ' disabled' : ''"
+   class="btn-page arrow">&lt;</a>
+  <!-- 현재 페이지 번호만 표시 -->
+  <span class="current-page" th:text="${currentPage}">1</span>
+
+  <!-- 다음 화살표 -->
+  <a th:if="${currentPage < totalPages}"
+   th:href="@{/admin(
+       section='chat',
+       projectId=${projectId},
+       page=${currentPage + 1},
+       fromDate=${fromDate},
+       toDate=${toDate},
+       category=${category},
+       keyword=${keyword}
+   )}"
+   class="arrow">&gt;</a>
+
+
+
 
   <!-- 초대 알림용 섹션 -->
   <section th:if="${section=='invitation'}" style="padding: 2rem;">
@@ -179,5 +242,11 @@
   <!-- 외부 admin.js 연결 -->
   <script th:src="@{/js/admin.js}"></script>
 </div>
+<script>
+  flatpickr(".datepicker", {
+    dateFormat: "Y-m-d",
+    locale: "ko"
+  });
+</script>
 </body>
 </html>
