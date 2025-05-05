@@ -5,73 +5,124 @@
 <head>
     <title layout:fragment="title">coop-todo</title>
     <link rel="stylesheet" th:href="@{/css/custom.css}">
+    <style>
+        .container-todo {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .completed {
+            text-decoration: line-through;
+            color: #6c757d;
+        }
+        
+        .todo-card {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .todo-list {
+            height: 400px;
+            overflow-y: auto;
+        }
+        
+        .gantt-card {
+            height: calc(100% - 0px);
+            min-height: unset;
+        }
+        
+        .todo-section {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        .todo-card {
+            flex: 1;
+            margin-bottom: 1rem;
+        }
+        
+        .add-todo-card {
+            margin-bottom: 0;
+        }
+        /* 모바일에서 카드 높이 조정 */
+        @media (max-width: 768px) {
+            .todo-section, .gantt-card {
+                min-height: 350px;
+            }
+        }
+    </style>
 </head>
 <body>
     <div layout:fragment="content">
-        <h1 class="mb-4">Todo List</h1>
+        <div class="container-todo">
+            <h1 class="mb-4 text-center">Todo List</h1>
 
-        <div class="row">
-            <!-- 간트 차트 todo -->
-            <div class="col-md-6" style="max-width: 420px;">
-                <div class="card mb-4" style="height: 537px; display: flex; flex-direction: column;">
-                    <div class="card-header">Gantt Chart Todos</div>
-                    <div class="card-body">
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item d-flex align-items-center"
-                                th:each="todo : ${ganttTodos}">
-                                <input type="checkbox"
-                                    class="form-check-input todo-checkbox me-2"
-                                    th:data-id="${todo.id}" th:checked="${todo.completed}">
-                                <span th:text="${todo.content}"
-                                    th:class="${todo.completed ? 'completed' : ''}"></span>
-                            </li>
-                            <li class="list-group-item text-center text-muted"
-                                th:if="${ganttTodos == null or ganttTodos.empty}">
-                                Gantt 작업이 없습니다.
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 내 작업 투두 -->
-            <div class="col-md-6" style="max-width: 420px;">
-                <div class="card mb-4" style="height: 400px; display: flex; flex-direction: column;">
-                    <div class="card-header">내 작업 목록</div>
-                    <div class="card-body p-0" style="flex: 1; overflow-y: auto;">
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item d-flex align-items-center"
-                                th:each="todo : ${customTodos}">
-                                <input type="checkbox"
-                                    class="form-check-input todo-checkbox me-2"
-                                    th:data-id="${todo.id}" th:checked="${todo.completed}">
-                                <span th:text="${todo.content}"
-                                    th:class="${todo.completed ? 'completed' : ''}"
-                                    class="flex-grow-1"></span>
-                                <form method="POST" th:action="@{/todo/delete}" class="ms-auto">
-                                    <input type="hidden" name="todoId" th:value="${todo.id}">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">삭제</button>
-                                </form>
-                            </li>
-                            <li class="list-group-item text-center text-muted"
-                                th:if="${customTodos == null or customTodos.empty}">
-                                작업이 없습니다.
-                            </li>
-                        </ul>
+            <div class="row" style="min-height: 500px;">
+                <!-- 간트 차트 todo -->
+                <div class="col-lg-6 col-md-12 mb-4">
+                    <div class="card gantt-card">
+                        <div class="card-header">Gantt Chart Todos</div>
+                        <div class="card-body">
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex align-items-center"
+                                    th:each="todo : ${ganttTodos}">
+                                    <input type="checkbox"
+                                        class="form-check-input todo-checkbox me-2"
+                                        th:data-id="${todo.id}" th:checked="${todo.completed}">
+                                    <span th:text="${todo.content}"
+                                        th:class="${todo.completed ? 'completed' : ''}"></span>
+                                </li>
+                                <li class="list-group-item text-center text-muted"
+                                    th:if="${ganttTodos == null or ganttTodos.empty}">
+                                    Gantt 작업이 없습니다.
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
 
-                <!-- todo 추가  -->
-                <div class="card">
-                    <div class="card-header">새 작업 추가</div>
-                    <div class="card-body">
-                        <form method="POST" th:action="@{/todo}">
-                            <div class="input-group">
-                                <input type="text" class="form-control" name="newTodo"
-                                    placeholder="새 작업 입력..." required>
-                                <button class="btn btn-primary" type="submit">추가</button>
-                            </div>
-                        </form>
+                <!-- 내 작업 투두 -->
+                <div class="col-lg-6 col-md-12 todo-section">
+                    <div class="card mb-4 todo-card">
+                        <div class="card-header">My Todos</div>
+                        <div class="card-body p-0 todo-list">
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex align-items-center"
+                                    th:each="todo : ${customTodos}">
+                                    <input type="checkbox"
+                                        class="form-check-input todo-checkbox me-2"
+                                        th:data-id="${todo.id}" th:checked="${todo.completed}">
+                                    <span th:text="${todo.content}"
+                                        th:class="${todo.completed ? 'completed' : ''}"
+                                        class="flex-grow-1"></span>
+                                    <form method="POST" th:action="@{/todo/delete}" class="ms-auto">
+                                        <input type="hidden" name="todoId" th:value="${todo.id}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">삭제</button>
+                                    </form>
+                                </li>
+                                <li class="list-group-item text-center text-muted"
+                                    th:if="${customTodos == null or customTodos.empty}">
+                                    작업이 없습니다.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- todo 추가  -->
+                    <div class="card add-todo-card">
+                        <div class="card-header">새 작업 추가</div>
+                        <div class="card-body">
+                            <form method="POST" th:action="@{/todo}">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" name="newTodo"
+                                        placeholder="새 작업 입력..." required>
+                                    <button class="btn btn-primary" type="submit">추가</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
