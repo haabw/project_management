@@ -26,11 +26,7 @@ public class CustomAuthFailureHandler extends SimpleUrlAuthenticationFailureHand
         String password = request.getParameter("password");
 
         String errorMessage;
-        if (username == null || username.trim().isEmpty()) {
-            errorMessage = "아이디를 채워주세요.";
-        } else if (password == null || password.trim().isEmpty()) {
-            errorMessage = "비밀번호를 채워주세요.";
-        } else if (exception instanceof BadCredentialsException) {
+        if (exception instanceof BadCredentialsException) {
             errorMessage = "아이디 또는 비밀번호가 맞지 않습니다.\n 다시 확인해 주세요.";
         } else if (exception instanceof InternalAuthenticationServiceException) {
             errorMessage = "내부적으로 발생한 시스템 문제로 인해 요청을 처리할 수 없습니다.\n 관리자에게 문의하세요.";

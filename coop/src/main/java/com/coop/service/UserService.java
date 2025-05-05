@@ -36,10 +36,17 @@ public class UserService {
 
     // 회원 가입 저장
     public void save(SignupDTO signupDTO) {
+    	// 비밀번호 재확인 검증
+    	if (!signupDTO.getPassword().equals(signupDTO.getPasswordConfirm())) {
+            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+        }
+    	
+    	// 사용자명 중복 체크
         if (userRepository.findByUsername(signupDTO.getUsername()).isPresent()) {
             throw new RuntimeException("이미 존재하는 사용자명입니다.");
         }
 
+        // 이메일 중복 체크
         if (userRepository.findByEmail(signupDTO.getEmail()).isPresent()) {
             throw new RuntimeException("이미 가입된 이메일입니다.");
         }

@@ -4,6 +4,8 @@ import com.coop.dto.ChatDTO;
 import com.coop.entity.UserEntity;
 import com.coop.service.ChatService;
 import com.coop.service.UserService;
+
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity; // ResponseEntity 사용
 import org.springframework.messaging.handler.annotation.DestinationVariable;

@@ -3,6 +3,7 @@ package com.coop.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,6 +14,8 @@ import com.coop.dto.SignupDTO;
 import com.coop.repository.UserRepository;
 import com.coop.service.UserService;
 
+import jakarta.validation.Valid;
+
 //로그인 라우팅
 // "/auth" 하위 경로로 오는 요청을 매핑 
 @Controller
@@ -20,14 +23,11 @@ import com.coop.service.UserService;
 public class AuthController {
 	
 	private final UserService userService;
-    private final UserRepository userRepository;
-    private final BCryptPasswordEncoder bCryptPasswordEncoder;
+
     
     @Autowired
-    public AuthController(UserService userService, UserRepository userRepository, BCryptPasswordEncoder bCryptPasswordEncoder) {
+    public AuthController(UserService userService) {
         this.userService = userService;
-        this.userRepository = userRepository;
-        this.bCryptPasswordEncoder = bCryptPasswordEncoder;
     }
 	
     // 회원 가입 폼 표시
@@ -38,16 +38,18 @@ public class AuthController {
 	
 	// 회원가입 요청 처리 
 	@PostMapping("/signup")
-	public String signup(SignupDTO signupDTO, Model model) {
-		try {
-			// 사용자 정보 저장 
-			userService.save(signupDTO);
-			return "redirect:/auth/login";
-		} catch (Exception e) {
-			// 에러 발생 시 에러 메시지를 모델에 추가하고 회원 가입 폼으로 반환 
-			model.addAttribute("error", e.getMessage());
-			return "signup";
-		}
+	public String signup(@Valid SignupDTO signupDTO, BindingResult result, Model model) {
+	    if (result.hasErrors()) {
+	        return "signup";
+	    }
+	    try {
+	        signupDTO.validatePassword(); // 비밀번호 복잡성 검증 포함
+	        userService.save(signupDTO);
+	        return "redirect:/auth/login";
+	    } catch (Exception e) {
+	        model.addAttribute("error", e.getMessage());
+	        return "signup";
+	    }
 	}
 	
 	@GetMapping("/login")
