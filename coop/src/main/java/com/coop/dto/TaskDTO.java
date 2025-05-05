@@ -18,6 +18,7 @@ public class TaskDTO {
     private Integer duration;     // 기간
     private Integer progress;     // 진행률
     private String status;        // 상태 (진행중, 완료 등)
-    private Integer parentId;     // 상위 작업 ID
+    private Integer projectId;
     private Integer assigneeId;   // 담당자 ID
+    private String assigneeName;  // 작업자 이름
 }

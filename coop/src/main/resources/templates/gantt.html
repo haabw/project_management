@@ -1,5 +1,8 @@
 <!DOCTYPE HTML>
-<html>
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/main}">
 <head>
   <meta http-equiv="X-UA-Compatible" content="IE=9; IE=8; IE=7; IE=EDGE"/>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
@@ -40,9 +43,7 @@
 
 </head>
 <body style="background-color: #fff;">
-
-
-
+<main layout:fragment="content" class="main-content">
 <div id="workSpace" style="padding:0px; overflow-y:auto; overflow-x:hidden;border:1px solid #e5e5e5;position:relative;margin:0 5px"></div>
 
 <style>
@@ -251,8 +252,6 @@ function saveInLocalStorage() {
       <button onclick="saveGanttOnServer();" class="button first big requireWrite" title="Save" style="background-color: #28a745; color: white; border: none; border-radius: 4px; padding: 8px 16px; cursor: pointer;">
   Save
 </button>
-      <input type="file" name="load-file" id="load-file">
-      <label for="load-file">Load</label>
       <button onclick='newProject();' class='button requireWrite newproject'><em>clear project</em></button>
       </div>
   </div>
@@ -265,7 +264,7 @@ function saveInLocalStorage() {
     <tr style="height:40px">
       <th class="gdfColHeader" style="width:30px; border-right: none">ID</th>
       <th class="gdfColHeader" style="width:35px;">상태</th>
-      <th class="gdfColHeader gdfResizable" style="width:100px;">담당자 이름</th>
+      <th class="gdfColHeader gdfResizable" style="width:100px;">작업자 이름</th>
       <th class="gdfColHeader gdfResizable" style="width:300px;">작업 이름</th>
       <th class="gdfColHeader gdfResizable" style="width:80px;">시작 날짜</th>
       <th class="gdfColHeader gdfResizable" style="width:80px;">완료 날짜</th>
@@ -280,9 +279,9 @@ function saveInLocalStorage() {
 
 <div class="__template__" type="TASKROW"><!--
   <tr id="tid_(#=obj.id#)" taskId="(#=obj.id#)" class="taskEditRow (#=obj.isParent()?'isParent':''#) (#=obj.collapsed?'collapsed':''#)" level="(#=level#)">
-    <th class="gdfCell edit" align="right" style="cursor:pointer;"><span class="taskRowIndex">(#=obj.getRow()+1#)</span> <span class="teamworkIcon" style="font-size:12px;" >e</span></th>
+    <th class="gdfCell" align="right"><span class="taskRowIndex">(#=obj.getRow()+1#)</span></th>
     <td class="gdfCell noClip" align="center"><div class="taskStatus cvcColorSquare" status="(#=obj.status#)"></div></td>
-    <td class="gdfCell"><input type="text" name="code" value="(#=obj.code?obj.code:''#)" placeholder="담당자 이름"></td>
+    <td class="gdfCell"><input type="text" name="code" value="(#=obj.code?obj.code:''#)" placeholder="작업자 이름"></td>
     <td class="gdfCell indentCell" style="padding-left:(#=obj.level*10+18#)px;">
       <div class="exp-controller" align="center"></div>
       <input type="text" name="name" value="(#=obj.name#)" placeholder="name">
@@ -324,7 +323,15 @@ function saveInLocalStorage() {
 
 <div class="__template__" type="TASKBAR"></div>
 
-<div class="__template__" type="CHANGE_STATUS"></div>
+<div class="__template__" type="CHANGE_STATUS">
+<div class="taskStatusBox">
+    <div class="taskStatus cvcColorSquare" status="STATUS_Unspecified" title="미지정"></div>
+    <div class="taskStatus cvcColorSquare" status="STATUS_Working" title="작업중"></div>
+    <div class="taskStatus cvcColorSquare" status="STATUS_Planning" title="계획중"></div>
+    <div class="taskStatus cvcColorSquare" status="STATUS_Inspection" title="점검중"></div>
+    <div class="taskStatus cvcColorSquare" status="STATUS_Completion" title="완료"></div>
+    </div>
+</div>
 <div class="__template__" type="TASK_EDITOR"></div>
 
 <div class="__template__" type="RESOURCE_ROW"><!--
@@ -392,7 +399,7 @@ function addNewTask() {
 	    now,
 	    3
 	  );
-
+	  task.status = "STATUS_Unspecified";
 	  ge.addTask(task);
 	  ge.endTransaction();
 	}
@@ -471,11 +478,6 @@ function convertToText(project) {
 	  downloadText(text, filename, "text/plain");
 	}
 </script>
-
-
-
-
-
-
+</main>
 </body>
 </html>

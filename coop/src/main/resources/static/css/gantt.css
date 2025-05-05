@@ -454,30 +454,27 @@ input[readonly]{
   border:0;
   cursor: pointer;
 }
-.taskStatus[status=STATUS_ACTIVE]{
-  background-color: #3BBF67;
+.taskStatus[status=STATUS_Planning]{
+  background-color: #95a5a6;
   color: #fff;
 }
-.taskStatus[status=STATUS_DONE]{
+.taskStatus[status=STATUS_Working]{
   background-color: #6EBEF4;
   color:#000;
 }
-.taskStatus[status=STATUS_FAILED]{
-  background-color: #763A96;
+.taskStatus[status=STATUS_Unspecified]{
+  background-color: #e74c3c;
   color: #fff;
 }
-.taskStatus[status=STATUS_SUSPENDED]{
-  background-color: #F9C154;
+.taskStatus[status=STATUS_Inspection]{
+  background-color: #d35400;
   color:#000;
 }
-.taskStatus[status=STATUS_WAITING]{
-  background-color:#F79136;
-  color:#000;
+.taskStatus[status=STATUS_Completion]{
+  background-color:#3BBF67;
+  color:#fff;
 }
-.taskStatus[status=STATUS_UNDEFINED]{
-  background-color: #dededf;
-  color:#000;
-}
+
 .taskStatus.selected{
   border:#666 2px solid;
 }
@@ -586,25 +583,22 @@ select.taskStatus{
   stroke-dasharray:2,2;
 }
 
-.colorByStatus .taskStatusSVG[status=STATUS_ACTIVE]{
-  fill: #3BBF67;
+.colorByStatus .taskStatusSVG[status=STATUS_Unspecified]{
+  fill: #e74c3c;
 }
-.colorByStatus .taskStatusSVG[status=STATUS_DONE]{
+.colorByStatus .taskStatusSVG[status=STATUS_Working]{
   fill: #6EBEF4;
 }
-.colorByStatus .taskStatusSVG[status=STATUS_FAILED]{
-  fill: #763A96;
+.colorByStatus .taskStatusSVG[status=STATUS_Planning]{
+  fill: #95a5a6;
 }
-.colorByStatus .taskStatusSVG[status=STATUS_SUSPENDED]{
-  fill: #f9c154;
+.colorByStatus .taskStatusSVG[status=STATUS_Inspection]{
+  fill: #d35400;
 }
-.colorByStatus .taskStatusSVG[status=STATUS_UNDEFINED]{
-  fill: #dededf;
+.colorByStatus .taskStatusSVG[status=STATUS_Completion]{
+  fill: #3BBF67;
 }
-.colorByStatus .taskStatusSVG[status=STATUS_UNDEFINED] .taskLayout{
-  stroke: #ccc;
-  stroke-width:1;
-}
+
 
 .colorByStatus .taskStatusSVG[status=STATUS_DONE] .textPerc,
 .colorByStatus .taskStatusSVG[status=STATUS_ACTIVE] .textPerc,
@@ -1293,30 +1287,27 @@ input[readonly]{
   border:0;
   cursor: pointer;
 }
-.taskStatus[status=STATUS_ACTIVE]{
-  background-color: #3BBF67;
-  color: #fff;
+.taskStatus[status=STATUS_Planning]{
+  background-color: #e74c3c;
+  color:#000;
 }
-.taskStatus[status=STATUS_DONE]{
+.taskStatus[status=STATUS_Working]{
   background-color: #6EBEF4;
-  color:#000;
-}
-.taskStatus[status=STATUS_FAILED]{
-  background-color: #763A96;
   color: #fff;
 }
-.taskStatus[status=STATUS_SUSPENDED]{
-  background-color: #F9C154;
-  color:#000;
+.taskStatus[status=STATUS_Planning]{
+  background-color: #95a5a6;
+  color: #fff;
 }
-.taskStatus[status=STATUS_WAITING]{
-  background-color:#F79136;
-  color:#000;
+.taskStatus[status=STATUS_Preparing]{
+  background-color: #8e44ad;
+  color: #fff;
 }
-.taskStatus[status=STATUS_UNDEFINED]{
-  background-color: #dededf;
-  color:#000;
+.taskStatus[status=STATUS_Completion]{
+  background-color: #3BBF67;
+  color:#fff;
 }
+
 .taskStatus.selected{
   border:#666 2px solid;
 }
@@ -1427,20 +1418,20 @@ SVG요소 관련 구성
   stroke-dasharray:2,2;
 }
 
-.colorByStatus .taskStatusSVG[status=STATUS_ACTIVE]{
-  fill: #3BBF67;
+.colorByStatus .taskStatusSVG[status=STATUS_Unspecified]{
+  fill: #e74c3c;
 }
-.colorByStatus .taskStatusSVG[status=STATUS_DONE]{
+.colorByStatus .taskStatusSVG[status=STATUS_Working]{
   fill: #6EBEF4;
 }
-.colorByStatus .taskStatusSVG[status=STATUS_FAILED]{
-  fill: #763A96;
+.colorByStatus .taskStatusSVG[status=STATUS_Planning]{
+  fill: #95a5a6;
 }
-.colorByStatus .taskStatusSVG[status=STATUS_SUSPENDED]{
-  fill: #f9c154;
+.colorByStatus .taskStatusSVG[status=STATUS_Inspection]{
+  fill: #8e44ad;
 }
-.colorByStatus .taskStatusSVG[status=STATUS_UNDEFINED]{
-  fill: #dededf;
+.colorByStatus .taskStatusSVG[status=STATUS_Completion]{
+  fill: #3BBF67;
 }
 .colorByStatus .taskStatusSVG[status=STATUS_UNDEFINED] .taskLayout{
   stroke: #ccc;
