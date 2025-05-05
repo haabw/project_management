@@ -23,6 +23,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.GetMapping; // 추가
+import org.springframework.web.bind.annotation.RequestParam; // 추가!
+import jakarta.persistence.EntityNotFoundException; // <--- EntityNotFoundException 임포트 추가!
 
 import com.coop.dto.ProjectDTO;
 import com.coop.entity.ProjectEntity;                    // ← 추가된 import
@@ -180,4 +183,61 @@ public class MainController {
     public void delete(@PathVariable int id) {
         projectService.deleteProject(id);
     }
+    /**
+     * 채팅 페이지 요청을 처리하는 메서드 (Request Parameter 사용 - 최종 수정본)
+     * 경로: /chat
+     * @param projectId URL 파라미터에서 받아온 프로젝트 ID (?projectId=...)
+     * @param model     View(chat.html)에 데이터를 전달하기 위한 객체
+     * @param authentication Spring Security가 제공하는 현재 사용자 인증 정보
+     * @return 보여줄 템플릿 이름 ("chat") 또는 에러 페이지
+     */
+    @GetMapping("/chat") // 요청 경로
+    public String chatPageByParam(@RequestParam("projectId") Integer projectId, Model model, Authentication authentication) {
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            // 로그인되지 않은 사용자는 로그인 페이지로 리다이렉트
+            return "redirect:/login";
+        }
+
+        try {
+            // 1. 현재 로그인된 사용자 정보 가져오기 (DB 조회)
+            String currentLoginId = authentication.getName(); // 로그인 시 사용한 ID (username)
+            UserEntity currentUser = userService.findByUsername(currentLoginId)
+                     // 사용자를 찾지 못하면 EntityNotFoundException 발생
+                     .orElseThrow(() -> new EntityNotFoundException("로그인 사용자를 찾을 수 없습니다: " + currentLoginId));
+
+            // 2. 프로젝트 정보 가져오기 (DB 조회 - ProjectService 경유)
+            // ProjectService 내부에서 projectRepository.findById(id)를 사용할 것으로 예상
+            ProjectEntity project = projectService.findById(projectId)
+                    .orElseThrow(() -> new EntityNotFoundException("프로젝트를 찾을 수 없습니다. ID: " + projectId));
+
+            // [보안 강화 제안] TODO: 현재 로그인한 사용자가 이 프로젝트의 멤버인지 확인하는 로직 추가
+            // boolean isMember = projectService.isUserMemberOfProject(currentUser.getId(), projectId);
+            // if (!isMember) {
+            //     throw new AccessDeniedException("해당 프로젝트에 접근 권한이 없습니다.");
+            // }
+
+            // 3. Model 객체에 View(chat.html) 렌더링에 필요한 데이터 담기
+            model.addAttribute("projectId", projectId);          // 프로젝트 ID
+            model.addAttribute("userId", currentUser.getId());     // 현재 사용자 ID (PK)
+            model.addAttribute("username", currentUser.getNickname()); // 현재 사용자 닉네임
+            model.addAttribute("project", project);              // 프로젝트 정보 객체 (이름 등 표시용)
+
+            // 4. chat.html 템플릿 반환
+            return "chat";
+
+        } catch (EntityNotFoundException e) {
+            // 사용자를 찾지 못하거나 프로젝트를 찾지 못한 경우 (404 Not Found 와 유사)
+            System.err.println("채팅 페이지 접근 오류: " + e.getMessage());
+            model.addAttribute("errorMessage", e.getMessage());
+            return "error/404"; // templates/error/404.html 반환 (경로 확인 필요)
+        } catch (Exception e) {
+             // 기타 예상치 못한 서버 오류
+             System.err.println("채팅 페이지 로딩 중 오류 발생: " + e.getMessage());
+             e.printStackTrace(); // 개발 중 상세 스택 트레이스 출력
+             model.addAttribute("errorMessage", "채팅 페이지 로딩 중 오류가 발생했습니다.");
+             return "error/500"; // templates/error/500.html 반환 (경로 확인 필요)
+        }
+    }
+
 }
