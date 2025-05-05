@@ -1,7 +1,6 @@
 package com.coop.controller;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,10 +21,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.GetMapping; // 추가
 import org.springframework.web.bind.annotation.RequestParam; // 추가!
-import jakarta.persistence.EntityNotFoundException; // <--- EntityNotFoundException 임포트 추가!
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.coop.dto.ProjectDTO;
 import com.coop.entity.ProjectEntity;                    // ← 추가된 import
@@ -37,6 +34,7 @@ import com.coop.service.ProjectService;
 import com.coop.service.UserService;                     // ← 추가된 import
 
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityNotFoundException; // <--- EntityNotFoundException 임포트 추가!
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 
@@ -167,15 +165,35 @@ public class MainController {
     }
 
     @GetMapping("/projects/list")
-    @ResponseBody
-    public List<ProjectDTO> list() {
-        return projectService.getAllProjects();
+        @ResponseBody
+        public List<ProjectDTO> list(Authentication authentication) {
+    	// 1) 로그인한 사용자 이름 가져오기 (한 번만 선언)
+    	    String username = authentication.getName();
+    	    
+    	    // 2) 서비스에 username 넘겨서 조회
+    	    return projectService.getMyApprovedProjects(username);
     }
 
+    /** 프로젝트 이름 수정 */
     @PutMapping("/projects/update")
     @ResponseBody
-    public ProjectDTO update(@RequestBody ProjectDTO projectDTO) {
-        return projectService.updateProject(projectDTO.getProjectId(), projectDTO);
+    public ResponseEntity<ProjectDTO> updateProject(
+            @RequestBody Map<String, String> payload,
+            Authentication authentication) {
+
+        // 1) 로그인 사용자 조회
+        String username = authentication.getName();
+        UserEntity user = userService.findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("로그인된 사용자 정보가 없습니다."));
+
+        // 2) 요청 데이터 파싱
+        int projectId = Integer.parseInt(payload.get("projectId"));
+        String newName  = payload.get("projectName");
+
+        // 3) 수정 (Service 레벨에서 권한 체크 추가 가능)
+        ProjectDTO updated = projectService.updateProjectName(projectId, newName);
+
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/projects/delete/{id}")

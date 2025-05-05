@@ -19,6 +19,7 @@
     <a th:href="@{/admin(section='members', projectId=${projectId})}" th:classappend="${section=='members'} ? 'active' : ''">팀원 관리</a>
     <a th:href="@{/admin(section='permissions', projectId=${projectId})}" th:classappend="${section=='permissions'} ? 'active' : ''">권한 설정</a>
     <a th:href="@{/admin(section='chat', projectId=${projectId})}" th:classappend="${section=='chat'} ? 'active' : ''">채팅 이력</a>
+    <a th:href="@{/admin(section='projects',    projectId=${projectId})}" th:classappend="${section=='projects'}     ? 'active' : ''">프로젝트 관리</a>
   </div>
 
   <!-- 데이터 전달용 hidden 요소 -->
@@ -175,8 +176,69 @@
       <button onclick="closeInviteModal()">닫기</button>
     </div>
   </div>
+  
+   <section th:if="${section=='projects'}" class="mt-4">
+    <h2>프로젝트 관리</h2>
+    <table id="projectTable" class="table table-striped table-sm">
+      <!-- 부트스트랩 적용  -->
+      <thead class="table-light position-sticky top-0" style="z-index:1">
+        <tr>
+          <th scope="col" style="width: 5%;">ID</th>
+          <th scope="col" class="text-center" style="width: 50%;">프로젝트명</th>
+          <th scope="col" style="width: 25%;">생성일자</th>
+          <th scope="col" style="width: 20%;">관리</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="p : ${projectList}">
+          <td th:text="${p.projectId}">ID</td>
+          <td>
+            <input 
+              type="text"
+              class="form-control-plaintext text-center"
+              data-id="[[${p.projectId}]]"
+              th:value="${p.projectName}">
+          </td>
+          <td th:text="${#temporals.format(p.createDate,'yyyy-MM-dd HH:mm:ss')}">날짜</td>
+          <td>
+           <button type="button" class="btn btn-sm btn-outline-primary edit-btn" data-id="[[${p.projectId}]]">수정</button>
+            <button class="btn btn-sm btn-outline-danger delete-btn" data-id="[[${p.projectId}]]">삭제</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+ <!-- 프로젝트 수정용 모달 -->
+ <div class="modal fade" id="editProjectModal" tabindex="-1" aria-labelledby="editProjectModalLabel" aria-hidden="true">
+   <div class="modal-dialog">
+     <div class="modal-content">
+       <div class="modal-header">
+         <h5 class="modal-title" id="editProjectModalLabel">프로젝트 수정</h5>
+         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+       </div>
+       <div class="modal-body">
+         <div class="mb-3">
+           <label for="editProjectName" class="form-label">프로젝트명</label>
+           <input type="text" class="form-control" id="editProjectName" required>
+           <div class="invalid-feedback">프로젝트명을 입력해주세요.</div>
+           <input type="hidden" id="editProjectId">
+         </div>
+       </div>
+       <div class="modal-footer">
+         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+         <button type="button" class="btn btn-primary" id="confirmEditBtn">수정</button>
+       </div>
+     </div>
+   </div>
+ </div>
 
   <!-- 외부 admin.js 연결 -->
+  <script th:src="@{/js/bootstrap.bundle.min.js}"></script>
+  <script th:inline="javascript">
+  window.currentAdminSection = /*[[${section}]]*/ 'dashboard';
+  window.currentAdminProjectId   = /*[[${projectId}]]*/ 0;
+</script>
   <script th:src="@{/js/admin.js}"></script>
 </div>
 </body>
