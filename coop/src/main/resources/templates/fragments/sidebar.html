@@ -9,8 +9,10 @@
 
 	<!-- 프로필 -->
 	<div class="profile-box">
-		<div class="circle-icon">👤</div>
-		<span sec:authentication="name">이름</span>
+		<a href="#" data-bs-toggle="modal" data-bs-target="#profileModal"
+			style="text-decoration: none;">
+			<div class="circle-icon">👤</div>
+		</a> <span sec:authentication="name"></span>
 	</div>
 
 
@@ -66,6 +68,51 @@
 						data-bs-dismiss="modal">취소</button>
 					<button type="button" id="confirmAddProjectBtn"
 						class="btn btn-primary">추가</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- 마이페이지 모달 -->
+	<div class="modal fade" id="profileModal" tabindex="-1"
+		aria-hidden="true">
+		<div class="modal-dialog modal-dialog-centered">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">마이페이지</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+				</div>
+				<div class="modal-body">
+					<!-- 에러 메시지 -->
+					<div class="alert alert-danger d-none" id="profileError"></div>
+					<!-- 프로필 사진 업로드 -->
+					<div class="mb-2">
+						<label class="form-label small">프로필 사진</label> <input type="file"
+							id="profilePhoto" class="form-control form-control-sm"
+							accept="image/*">
+					</div>
+					<!-- 닉네임 변경 -->
+					<div class="mb-2">
+						<input type="text" id="nickname"
+							class="form-control form-control-sm" placeholder="새 닉네임">
+						<div class="invalid-feedback">닉네임을 입력해주세요.</div>
+					</div>
+					<!-- 비밀번호 변경 -->
+					<div class="mb-2">
+						<input type="password" id="newPassword"
+							class="form-control form-control-sm" placeholder="새 비밀번호">
+						<div class="invalid-feedback">비밀번호는 8자 이상, 대문자, 소문자, 숫자,
+							특수문자를 포함해야 합니다.</div>
+					</div>
+					<div class="mb-2">
+						<input type="password" id="confirmPassword"
+							class="form-control form-control-sm" placeholder="비밀번호 확인">
+						<div class="invalid-feedback">비밀번호가 일치하지 않습니다.</div>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary"
+						data-bs-dismiss="modal">취소</button>
+					<button type="button" id="saveProfileBtn" class="btn btn-primary">저장</button>
 				</div>
 			</div>
 		</div>

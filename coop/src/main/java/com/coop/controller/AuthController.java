@@ -1,15 +1,18 @@
 package com.coop.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.stereotype.Controller;
 
 import com.coop.dto.LoginDTO;
+import com.coop.dto.ProfileUpdateDTO;
 import com.coop.dto.SignupDTO;
 import com.coop.repository.UserRepository;
 import com.coop.service.UserService;
@@ -57,4 +60,25 @@ public class AuthController {
 		return "login";
 	}
 	//로그인 처리는 spring security에서 함.
+	
+	// 프로필 업데이트 처리
+    @PostMapping("/update")
+    public String updateProfile(
+            @Valid @ModelAttribute("profileUpdateDTO") ProfileUpdateDTO profileUpdateDTO,
+            BindingResult bindingResult,
+            Authentication authentication,
+            Model model) {
+        if (bindingResult.hasErrors()) {
+            return "index";
+        }
+
+        String username = authentication.getName();
+        try {
+            userService.updateProfile(username, profileUpdateDTO);
+            model.addAttribute("success", "프로필이 성공적으로 업데이트되었습니다.");
+        } catch (Exception e) {
+            model.addAttribute("error", e.getMessage());
+        }
+        return "index";
+    }
 }
