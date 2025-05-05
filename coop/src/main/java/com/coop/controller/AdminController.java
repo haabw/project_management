@@ -2,8 +2,11 @@
 package com.coop.controller;
 
 import com.coop.dto.UserView;
+import com.coop.entity.ChatEntity;
+import com.coop.entity.ProjectEntity;
 import com.coop.entity.UserEntity;
 import com.coop.entity.ProjectMemberEntity.ProjectRole;
+import com.coop.repository.ChatRepository;
 import com.coop.repository.UserRepository;
 import com.coop.service.UserService;
 import jakarta.persistence.EntityManager;
@@ -31,15 +34,93 @@ public class AdminController {
 
     private final UserService userService;
     private final UserRepository userRepository;
+    private final ChatRepository chatRepository;
 
     @PersistenceContext
     private EntityManager entityManager;
 
     @Autowired
-    public AdminController(UserService userService, UserRepository userRepository) {
+    public AdminController(UserService userService, UserRepository userRepository, ChatRepository chatRepository) {
         this.userService = userService;
         this.userRepository = userRepository;
+        this.chatRepository = chatRepository;
     }
+
+    // ✅ 채팅 이력 섹션 요청 처리 (필터링 및 페이지 기반)
+    @GetMapping(params = {"section=chat", "projectId"})
+    public String showChatLogs(
+            @RequestParam("projectId") Integer projectId,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "fromDate", required = false) String fromDate,
+            @RequestParam(value = "toDate", required = false) String toDate,
+            @RequestParam(value = "category", required = false) String category,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            Model model,
+            Authentication authentication
+    ) {
+        String username = authentication.getName();
+        UserEntity user = userService.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("로그인 사용자 없음"));
+
+        ProjectEntity project = entityManager.find(ProjectEntity.class, projectId);
+        if (project == null) throw new RuntimeException("해당 프로젝트가 존재하지 않습니다.");
+
+        int pageSize = 20;
+        int offset = (page - 1) * pageSize;
+
+        StringBuilder baseQuery = new StringBuilder("FROM ChatEntity c WHERE c.project = :project");
+        Map<String, Object> params = new HashMap<>();
+        params.put("project", project);
+
+        if (fromDate != null && !fromDate.isBlank()) {
+            baseQuery.append(" AND c.timestamp >= :fromDate");
+            params.put("fromDate", LocalDate.parse(fromDate).atStartOfDay());
+        }
+        if (toDate != null && !toDate.isBlank()) {
+            baseQuery.append(" AND c.timestamp <= :toDate");
+            params.put("toDate", LocalDate.parse(toDate).atTime(23, 59, 59));
+        }
+        if (category != null && !category.isBlank()) {
+            baseQuery.append(" AND c.category = :category");
+            params.put("category", category);
+        }
+        if (keyword != null && !keyword.isBlank()) {
+            baseQuery.append(" AND (c.message LIKE :keyword OR c.user.nickname LIKE :keyword)");
+            params.put("keyword", "%" + keyword + "%");
+        }
+
+        String countQuery = "SELECT COUNT(c) " + baseQuery.toString();
+        var countQ = entityManager.createQuery(countQuery, Long.class);
+        params.forEach(countQ::setParameter);
+        Long totalCount = countQ.getSingleResult();
+        int totalPages = (int) Math.ceil(totalCount / (double) pageSize);
+
+        String selectQuery = "SELECT c " + baseQuery.toString() + " ORDER BY c.timestamp DESC";
+        var query = entityManager.createQuery(selectQuery, ChatEntity.class)
+                .setFirstResult(offset)
+                .setMaxResults(pageSize);
+        params.forEach(query::setParameter);
+
+        List<ChatEntity> chatLogs = query.getResultList();
+
+        model.addAttribute("chatLogs", chatLogs);
+        model.addAttribute("section", "chat");
+        model.addAttribute("projectId", projectId);
+        model.addAttribute("currentUsername", username);
+        model.addAttribute("currentUserId", user.getId());
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", totalPages);
+
+        // ✅ 검색 조건도 모델에 포함 (👉 이 줄들을 추가!)
+        model.addAttribute("fromDate", fromDate);
+        model.addAttribute("toDate", toDate);
+        model.addAttribute("category", category);
+        model.addAttribute("keyword", keyword);
+
+
+        return "admin";
+    }
+
     /**
      * 관리자 페이지 진입 시 처리되는 메인 로직
      * - projectId 없으면 자동으로 내 프로젝트로 redirect

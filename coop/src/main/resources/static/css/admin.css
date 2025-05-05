@@ -39,6 +39,50 @@
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
   background-color: white;
 }	
+
+/* 채팅 이력 페이지네이션 (중앙 정렬 + 심플한 스타일) */
+.pagination-wrapper {
+  text-align: center;
+  margin-top: 1.5rem;
+  font-size: 1.1rem;
+  user-select: none;
+}
+
+.pagination-wrapper a,
+.pagination-wrapper span {
+  margin: 0 10px;
+  color: #888;
+  text-decoration: none;
+  font-weight: normal;
+}
+
+.pagination-wrapper .current-page {
+  color: #000;
+  font-weight: bold;
+}
+
+.pagination-wrapper .arrow {
+  font-size: 1.3rem;
+  color: #ccc;
+  cursor: pointer;
+}
+
+.pagination-wrapper .arrow:hover {
+  color: #333;
+}
+
+.chat-table thead {
+  background-color: #eaf4fc;
+}
+
+.chat-table tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.chat-table tbody tr:hover {
+  background-color: #f1f1f1;
+}
+
 /* 반응형 대응 (모바일) */
 @media (max-width: 600px) {
   .admin-tabs {
