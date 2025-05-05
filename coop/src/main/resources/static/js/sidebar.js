@@ -193,11 +193,16 @@ closeToggle.addEventListener("click", () => {
 
 			// 버튼들 생성
 			buttonGroup.innerHTML = `
-				<a class="btn btn-outline-primary btn-sm w-100 mb-1" href="/gantt?projectId=${proj.projectId}">Gantt</a>
-				<a class="btn btn-outline-primary btn-sm w-100 mb-1" href="/mindmap?projectId=${proj.projectId}">Mindmap</a>
-				<a class="btn btn-outline-primary btn-sm w-100 mb-1" href="/admin?projectId=${proj.projectId}">Admin</a>
-				<a class="btn btn-outline-primary btn-sm w-100 mb-1" href="/chat?projectId=${proj.projectId}">Chat</a>
+			  <div class="card p-2 border-0 bg-light">
+			    <div class="d-grid gap-2">
+			      <a class="btn btn-outline-primary btn-sm" href="/gantt?projectId=${proj.projectId}">Gantt</a>
+			      <a class="btn btn-outline-primary btn-sm" href="/mindmap?projectId=${proj.projectId}">Mindmap</a>
+			      <a class="btn btn-outline-primary btn-sm" href="/admin?projectId=${proj.projectId}">Admin</a>
+			      <a class="btn btn-outline-primary btn-sm" href="/chat?projectId=${proj.projectId}">Chat</a>
+			    </div>
+			  </div>
 			`;
+
 
 			body.appendChild(buttonGroup);
 
