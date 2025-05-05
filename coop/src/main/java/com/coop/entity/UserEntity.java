@@ -47,4 +47,8 @@ public class UserEntity {
     protected void onUpdate() {
         this.modifiedDate = LocalDateTime.now();
     }
+    public void setProfileImage(String base64Image) {
+		// TODO Auto-generated method stub
+		
+	}
 }
