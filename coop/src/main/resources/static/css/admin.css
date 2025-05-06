@@ -83,6 +83,20 @@
   background-color: #f1f1f1;
 }
 
+#projectTable {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+/* 헤더 아래 굵은 흰 실선 */
+#projectTable thead tr {
+  border-bottom: 2px solid #fff !important;
+}
+
+/* 각 데이터 행 위 얇은 흰 실선 */
+#projectTable tbody tr {
+  border-top: 1px solid #fff !important;
+}
 /* 반응형 대응 (모바일) */
 @media (max-width: 600px) {
   .admin-tabs {
