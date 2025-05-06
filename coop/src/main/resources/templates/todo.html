@@ -6,70 +6,84 @@
     <title layout:fragment="title">coop-todo</title>
     <link rel="stylesheet" th:href="@{/css/custom.css}">
     <style>
-        .container-todo {
-            max-width: 1500px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        .completed {
-            text-decoration: line-through;
-            color: #6c757d;
-        }
-        
-        .todo-card {
+        /* 1) 뷰포트 전체 높이·여백 초기화 */
+        html, body {
+            margin: 0;
+            padding: 0;
             height: 100%;
+        }
+
+        /* 2) 최상위 컨테이너: 화면 전체를 가득 채우는 flex 박스 */
+        .container-todo {
+            width: 100%;         /* 부모(컨테이너플루이드) 전체 폭 */
+            height: 100vh;       /* 뷰포트 전체 높이 */
+            padding: 20px;
+            box-sizing: border-box;
             display: flex;
             flex-direction: column;
         }
-        
-        .todo-list {
-            height: 796px;
+
+        /* 3) 제목 아래 영역을 flex-grow로 채우고, 좌우 패널을 flex 배치 */
+        .content-row {
+            flex: 1;
+            display: flex;
+            gap: 1rem;
+        }
+
+        /* 4) Gantt 와 My Todos 패널: 50:50 폭, 내부 flex 배치 */
+        .gantt-panel,
+        .todo-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 5) 카드 높이 전부 채우기, 본문만 스크롤 */
+        .gantt-panel .card,
+        .todo-section .card:first-child {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .gantt-panel .card-body,
+        .todo-section .card-body {
+            flex: 1;
             overflow-y: auto;
         }
-        
-        .gantt-card {
-            height: calc(100% - 0px);
-            min-height: unset;
+
+        /* 6) My Todos 아래에 추가 폼 */
+        .todo-section .add-todo-card {
+            margin-top: 1rem;
+            flex-shrink: 0;
         }
-        
-        .todo-section {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-        }
-        
-        .todo-card {
-            flex: 1;
-            margin-bottom: 1rem;
-        }
-        
-        .add-todo-card {
-            margin-bottom: 0;
-        }
-        /* 모바일에서 카드 높이 조정 */
+
+        /* 7) 모바일(≤768px)에서는 세로로 쌓고 높이 자동 조절 */
         @media (max-width: 768px) {
-            .todo-section, .gantt-card {
-                min-height: 350px;
+            .content-row {
+                flex-direction: column;
+            }
+            .todos-panel .add-todo-card {
+                margin-top: 0.5rem;
             }
         }
     </style>
 </head>
 <body>
-    <div layout:fragment="content">
-        <div class="container-todo">
-            <h1 class="mb-4 text-center">Todo List</h1>
+  <div layout:fragment="content">
+    <div class="container-todo">
+      <h1 class="text-center mb-4">Todo List</h1>
 
-            <div class="row" style="min-height: 1000px;">
-                <!-- 간트 차트 todo -->
-                <div class="col-lg-7 col-md-12 mb-4">
-                    <div class="card gantt-card">
-                        <div class="card-header">Gantt Chart Todos</div>
-                        <div class="card-body">
-                            <ul class="list-group list-group-flush">
-                                <li class="list-group-item d-flex align-items-center"
-                                    th:each="todo : ${ganttTodos}">
-                                    <input type="checkbox"
+      <!-- 제목 아래 flex 컨테이너 -->
+      <div class="content-row">
+        <!-- 좌: Gantt Chart -->
+        <div class="gantt-panel">
+          <div class="card">
+            <div class="card-header">Gantt Chart Todos</div>
+            <div class="card-body">
+              <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex align-items-center"
+                    th:each="todo : ${ganttTodos}">
+                   <input type="checkbox"
                                         class="form-check-input todo-checkbox me-2"
                                         th:data-id="${todo.id}" th:checked="${todo.completed}">
                                     <span th:text="${todo.content}"
@@ -78,21 +92,21 @@
                                 <li class="list-group-item text-center text-muted"
                                     th:if="${ganttTodos == null or ganttTodos.empty}">
                                     Gantt 작업이 없습니다.
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
 
-                <!-- 내 작업 투두 -->
-                <div class="col-lg-5 col-md-12 todo-section">
-                    <div class="card mb-4 todo-card">
-                        <div class="card-header">My Todos</div>
-                        <div class="card-body p-0 todo-list">
-                            <ul class="list-group list-group-flush">
-                                <li class="list-group-item d-flex align-items-center"
-                                    th:each="todo : ${customTodos}">
-                                    <input type="checkbox"
+        <!-- 우: My Todos + 추가 폼 -->
+        <div class="todo-section">
+          <div class="card">
+            <div class="card-header">My Todos</div>
+            <div class="card-body p-0 todo-list">
+              <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex align-items-center"
+                    th:each="todo : ${customTodos}">
+                 <input type="checkbox"
                                         class="form-check-input todo-checkbox me-2"
                                         th:data-id="${todo.id}" th:checked="${todo.completed}">
                                     <span th:text="${todo.content}"
@@ -106,13 +120,12 @@
                                 <li class="list-group-item text-center text-muted"
                                     th:if="${customTodos == null or customTodos.empty}">
                                     작업이 없습니다.
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <!-- todo 추가  -->
-                    <div class="card add-todo-card">
+                </li>
+              </ul>
+            </div>
+          </div>
+          <!-- 추가 폼 -->
+       <div class="card add-todo-card">
                         <div class="card-header">새 작업 추가</div>
                         <div class="card-body">
                             <form method="POST" th:action="@{/todo}">
@@ -120,19 +133,21 @@
                                     <input type="text" class="form-control" name="newTodo"
                                         placeholder="새 작업 입력..." required>
                                     <button class="btn btn-primary" type="submit">추가</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
                 </div>
+              </form>
             </div>
+          </div>
         </div>
-        <script th:src="@{/js/todo.js}"></script>
+
+      </div>
     </div>
-    
-    <!-- 스크립트를 위한 별도의 프래그먼트 정의 -->
+    <script th:src="@{/js/todo.js}"></script>
+  </div>
+   <!-- 스크립트를 위한 별도의 프래그먼트 정의 -->
     <th:block layout:fragment="scripts">
         <!-- 추가적인 스크립트가 필요한 경우 여기에 배치 -->
     </th:block>
+</body>
+</html>
 </body>
 </html>
