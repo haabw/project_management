@@ -20,8 +20,12 @@ public class TaskController {
     }
     // 전체 작업 목록 조회
     @GetMapping
-    public List<TaskDTO> getAllTasks() {
-        return taskService.getAllTasks();
+    public List<TaskDTO> getTasks(@RequestParam(value = "projectId", required = false) Integer projectId) {
+        if (projectId != null) {
+            return taskService.getTasksByProjectId(projectId);
+        } else {
+            return taskService.getAllTasks();
+        }
     }
     // 새 작업 생성
     @PostMapping

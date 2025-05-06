@@ -28,7 +28,6 @@
   <script src="/js/gantt_js/libs/jquery/dateField/jquery.dateField.js"></script>
   <script src="/js/gantt_js/libs/jquery/JST/jquery.JST.js"></script>
 
-
   <script type="text/javascript" src="/js/gantt_js/libs/jquery/svg/jquery.svg.min.js"></script>
   <script type="text/javascript" src="/js/gantt_js/libs/jquery/svg/jquery.svgdom.1.8.js"></script>
 
@@ -63,30 +62,47 @@
 
 
 <script type="text/javascript">
-
+//GanttMaster 객체 초기화 및 간트 차트 로딩
 var ge;
 $(function() {
-  var canWrite=true;
-  ge = new GanttMaster();
-  ge.set100OnClose=true;
+	  var canWrite = true;
+	  ge = new GanttMaster();	// Gantt 차트 메인 컨트롤 객체 생성
+	  ge.set100OnClose = true;  // 하위 작업이 닫힐 때 100%로 표시
+	  ge.shrinkParent = true;	// 부모 작업의 날짜를 자식에 맞춰 자동 조정
+	  ge.init($("#workSpace")); // 실제 차트가 들어갈 DOM 영역 초기화
+	  loadI18n();				// 다국어 메시지 설정
+	  delete ge.gantt.zoom;		// 줌 기능 제거
+	  // URL에서 projectId 추출
+	  const urlParams = new URLSearchParams(window.location.search);
+	  const projectId = urlParams.get("projectId");
+	  // 서버에서 해당 프로젝트의 작업(Task) 데이터 가져오기
+	  fetch(`/api/tasks?projectId=${projectId}`)
+	    .then(res => {
+	      if (!res.ok) throw new Error("서버 응답 실패");
+	      return res.json();
+	    })
+	    .then(data => {
+	    // 가져온 데이터를 간트 차트에 로딩
+	      const project = {
+	    	tasks: data || [],  // 작업 목록
+	        resources: [],
+	        roles: [],
+	        canWrite: true,
+	        canDelete: true,
+	        canWriteOnParent: true,
+	        canAdd: true
+	      };
 
-  ge.shrinkParent=true;
-
-  ge.init($("#workSpace"));
-  loadI18n();
-  delete ge.gantt.zoom;
-
-  var project=loadFromLocalStorage();
-
-  if (!project.canWrite)
-    $(".ganttButtonBar button.requireWrite").attr("disabled","true");
-
-  ge.loadProject(project);
-  ge.checkpoint(); 
-
-  
-});
-
+	      ge.loadProject(project);	// 간트 차트에 데이터 반영
+	      ge.checkpoint();			// 현재 상태 저장
+	    })
+	    .catch(error => {
+	      console.error("작업 로딩 실패:", error);
+	      if (error.message !== "서버 응답 실패") return;
+	      alert("프로젝트 데이터를 불러오지 못했습니다.");
+	    });
+	});
+//파일에서 Gantt 데이터를 불러옴
 function upload(uploadedFile) {
   var fileread = new FileReader();
   
@@ -103,54 +119,76 @@ function upload(uploadedFile) {
 }
 
 function saveGanttOnServer() {
-	  console.log("저장 요청 시작 ✅");
+	  // 현재 프로젝트 저장 요청
+	  console.log("저장 요청 시작");
+	  // URL에서 프로젝트 ID 가져오기
+	  const prj = ge.saveProject(); 	// 현재 간트 차트 상태를 가져옴
+	  const urlParams = new URLSearchParams(window.location.search);
+	  const CURRENT_PROJECT_ID = parseInt(urlParams.get("projectId"));
+	  
+	  function formatDate(dateValue) {
+		  if (!dateValue) return null;
+		  const date = new Date(dateValue);
+		  if (isNaN(date.getTime())) return null;
+		  return date.toISOString().split("T")[0];
+		}
 
-	  const prj = ge.saveProject();
+	  // 서버에 저장된 기존 작업 리스트 가져오기
+	  fetch(`/api/tasks?projectId=${CURRENT_PROJECT_ID}`)
+	    .then(res => res.json())
+	    .then(serverTasks => {
+	      const serverIds = serverTasks.map(t => t.id); // 서버에 있는 ID
+	      const clientIds = prj.tasks.map(t => t.id);   // 클라이언트에 있는 ID
+	      console.log("task.id 목록", clientIds);
+	      // 클라이언트에서 지워진 작업은 서버에서도 삭제
+	      serverIds.forEach(id => {
+	        if (!clientIds.includes(id)) {
+	          fetch(`/api/tasks/${id}`, {
+	            method: "DELETE"
+	          });
+	        }
+	      });
+	      // 작업이 없을 경우 저장하지 않음
+	      if (!prj.tasks || prj.tasks.length === 0) {
+	    	  alert("모든 작업이 삭제되어 서버에서도 제거되었습니다.");
+	        return;
+	      }
+	   	  // 남은 작업 서버에 저장
+	      prj.tasks.forEach(task => {
+	        const dto = {
+	          id: task.id && parseInt(task.id) < 2147483647 ? parseInt(task.id) : null,
+	          name: task.name || "작업명 없음",
+	          start: formatDate(task.start),
+	          end: formatDate(task.end),
+	          duration: task.duration || 1,
+	          progress: parseInt(task.progress) || 0,
+	          status: task.status || "진행중",
+	          parentId: task.parent || null,
+	          assigneeId: 1,
+	          projectId: CURRENT_PROJECT_ID
+	        };
 
-	  if (!prj.tasks || prj.tasks.length === 0) {
-	    alert("저장할 작업이 없습니다.");
-	    return;
-	  }
+	        fetch("/api/tasks", {
+	          method: "POST",
+	          headers: {
+	            "Content-Type": "application/json"
+	          },
+	          body: JSON.stringify(dto)
+	        }).then(res => {
+	          if (!res.ok) throw new Error("저장 실패");
+	          return res.json();
+	        }).then(data => {
+	          console.log("저장 완료:", data);
+	        }).catch(error => {
+	          console.error("저장 실패:", error);
+	        });
+	      });
 
-	  function formatDate(dateString) {
-	    if (!dateString) return null;
-	    const date = new Date(dateString);
-	    return date.toISOString().split("T")[0]; // yyyy-MM-dd
-	  }
-
-	  prj.tasks.forEach(task => {
-	    const dto = {
-	      name: task.name || "작업명 없음",
-	      start: formatDate(task.start),
-	      end: formatDate(task.end),
-	      duration: task.duration || 1,
-	      progress: parseInt(task.progress) || 0,
-	      status: task.status || "진행중",
-	      parentId: task.parent || null,
-	      assigneeId: 1
-	    };
-
-	    fetch("/api/tasks", {
-	      method: "POST",
-	      headers: {
-	        "Content-Type": "application/json"
-	      },
-	      body: JSON.stringify(dto)
-	    })
-	    .then(res => {
-	      if (!res.ok) throw new Error("저장 실패");
-	      return res.json();
-	    })
-	    .then(data => {
-	      console.log("✅ 저장 완료:", data);
-	    })
-	    .catch(error => {
-	      console.error("❌ 저장 실패:", error);
+	      alert("저장 완료");
 	    });
-	  });
-
-	  alert("서버로 저장 요청을 전송했습니다.");
 	}
+
+
 
 
 
@@ -173,15 +211,13 @@ function download(data, filename, type) {
 }
 
 function newProject(){
-  clearGantt();
+  clearGantt(); // 새 프로젝트 시작 시 차트 리셋
 }
-
 
 function clearGantt() {
+  // 현재 간트 차트 초기화
   ge.reset();
 }
-
-
 
 function loadFromLocalStorage() {
 	  var ret;
@@ -205,7 +241,6 @@ function loadFromLocalStorage() {
 
 	  return ret;
 	}
-
 
 function saveInLocalStorage() {
   var prj = ge.saveProject();
@@ -249,7 +284,7 @@ function saveInLocalStorage() {
     </div>
 
     <div>
-      <button onclick="saveGanttOnServer();" class="button first big requireWrite" title="Save" style="background-color: #28a745; color: white; border: none; border-radius: 4px; padding: 8px 16px; cursor: pointer;">
+      <button onclick="saveAsCustomText();" class="button first big requireWrite" title="Export" style="background-color: #007bff; color: white; border: none; border-radius: 4px; padding: 8px 16px; cursor: pointer;">
   Save
 </button>
       <button onclick='newProject();' class='button requireWrite newproject'><em>clear project</em></button>
@@ -442,12 +477,11 @@ GanttMaster.prototype.redraw = function () {
 
   return result;
 };
-
+//Ctrl + S 누르면 저장 함수 실행
 document.addEventListener('keydown', function (e) {
 	  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
 	    e.preventDefault();
-	    saveInLocalStorage();
-	    alert("작업이 저장되었습니다.");
+	    saveGanttOnServer();
 	  }
 	});
 	
