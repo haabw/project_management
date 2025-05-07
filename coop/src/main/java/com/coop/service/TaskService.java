@@ -2,16 +2,20 @@ package com.coop.service;
 
 import com.coop.entity.ProjectEntity;
 import com.coop.entity.TaskEntity;
+import com.coop.entity.UserEntity;
 import com.coop.repository.ProjectRepository;
 import com.coop.repository.TaskRepository;
+import com.coop.repository.UserRepository;
 import com.coop.dto.TaskDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class TaskService {
 
     @Autowired
@@ -19,6 +23,9 @@ public class TaskService {
 
     @Autowired
     private ProjectRepository projectRepository;
+    
+    @Autowired
+    private UserRepository userRepository;
 
     // 모든 Task 데이터를 가져와서 DTO 리스트로 반환
     public List<TaskDTO> getAllTasks() {
@@ -42,6 +49,7 @@ public class TaskService {
 
     // Task 수정
     public TaskDTO updateTask(Integer id, TaskDTO dto) {
+    	System.out.println(dto);
         TaskEntity task = taskRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
 
@@ -52,9 +60,11 @@ public class TaskService {
         task.setStart(dto.getStart());
         task.setEnd(dto.getEnd());
         task.setDuration(dto.getDuration());
+        System.out.println(dto.getProgress());
         task.setProgress(dto.getProgress());
         task.setStatus(dto.getStatus());
         task.setProject(project);
+        task.setPriority(dto.getPriority());
 
         TaskEntity updated = taskRepository.save(task);
         return convertToDTO(updated);
@@ -70,9 +80,20 @@ public class TaskService {
         dto.setDuration(task.getDuration());
         dto.setProgress(task.getProgress());
         dto.setStatus(task.getStatus());
-        dto.setAssigneeId(task.getAssignee() != null ? task.getAssignee().getId() : null);
-        dto.setAssigneeName(task.getAssignee() != null ? task.getAssignee().getUsername() : null);
+        dto.setPriority(task.getPriority());
         dto.setProjectId(task.getProject() != null ? task.getProject().getProjectId() : null);
+        if (task.getWorkers() != null && !task.getWorkers().isEmpty()) {
+            dto.setWorkerId(task.getWorkers().stream()
+                    .map(UserEntity::getId)
+                    .collect(Collectors.toList()));
+
+            dto.setWorkerNames(task.getWorkers().stream()
+                    .map(u -> u.getNickname() != null ? u.getNickname() : u.getUsername())
+                    .collect(Collectors.toList()));
+        } else {
+            dto.setWorkerId(List.of());
+            dto.setWorkerNames(List.of());
+        }
         return dto;
     }
 
@@ -86,7 +107,15 @@ public class TaskService {
         task.setDuration(dto.getDuration());
         task.setProgress(dto.getProgress());
         task.setStatus(dto.getStatus());
-
+        task.setPriority(dto.getPriority());
+        if (dto.getWorkerId() != null) {
+            List<UserEntity> users = dto.getWorkerId().stream()
+                .map(userId -> userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found: " + userId)))
+                .collect(Collectors.toList());
+            task.setWorkers(users);
+        }
+        
         if (dto.getProjectId() != null) {
             ProjectEntity project = projectRepository.findById(dto.getProjectId())
                     .orElseThrow(() -> new RuntimeException("Project not found"));
