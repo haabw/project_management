@@ -2,6 +2,7 @@ package com.coop.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional; // Optional 임포트 추가!
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -9,18 +10,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.coop.dto.ProjectDTO;
 import com.coop.entity.ProjectEntity;
+import com.coop.entity.ProjectMemberEntity.ProjectStatus;
 import com.coop.repository.ProjectRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import java.util.Optional; // Optional 임포트 추가!
-import com.coop.entity.ProjectEntity; // ProjectEntity 임포트
 
 @Service
 @RequiredArgsConstructor
 public class ProjectService {
 	private final ProjectRepository projectRepository;
-
 	/* 프로젝트 추가 */
 	public ProjectDTO createProject(ProjectDTO dto) {
 		ProjectEntity entity = ProjectEntity.builder().projectName(dto.getProjectName()).createDate(LocalDateTime.now())
@@ -30,24 +29,38 @@ public class ProjectService {
 		return mapToDTO(saved);
 	}
 
-	/* 전체 프로젝트 조회 */
+	/** 로그인한 userId 가 APPROVED 상태인 프로젝트만 DTO 로 반환 */
 	@Transactional(readOnly = true)
-	public List<ProjectDTO> getAllProjects() {
-		return projectRepository.findAll().stream().map(this::mapToDTO).collect(Collectors.toList());
-	}
+	  public List<ProjectDTO> getMyApprovedProjects(String username) {
+	    return projectRepository
+	      .findAllByMembers_User_UsernameAndMembers_Status(
+	        username, ProjectStatus.APPROVED
+	      )
+	      .stream()
+	      .map(this::mapToDTO)
+	      .toList();
+	  }
 
-	/* 프로젝트 수정 */
-	public ProjectDTO updateProject(int id, ProjectDTO dto) {
-		ProjectEntity existing = projectRepository.findById(id)
-				.orElseThrow(() -> new RuntimeException("해당 프로젝트를 찾을 수 없습니다. id=" + id));
+	/** 프로젝트 이름 수정 */
+    @Transactional
+    public ProjectDTO updateProjectName(int projectId, String newName) {
+        // 1) 기존 엔티티 조회
+        ProjectEntity entity = projectRepository.findById(projectId)
+            .orElseThrow(() -> new EntityNotFoundException("프로젝트가 없습니다. id=" + projectId));
 
-		// Builder 로 새 엔티티 생성해서 덮어쓰기 (세터 없이 하기 위함)
-		ProjectEntity updated = ProjectEntity.builder().projectId(existing.getProjectId())
-				.projectName(dto.getProjectName()).createDate(existing.getCreateDate()).build();
+        // 2) 이름만 변경 (JPA 변경 감지)
+        entity.setProjectName(newName);
 
-		ProjectEntity saved = projectRepository.save(updated);
-		return mapToDTO(saved);
-	}
+        // 3) save 호출도 가능
+        ProjectEntity saved = projectRepository.save(entity);
+
+        // 4) DTO 반환
+        return ProjectDTO.builder()
+                .projectId(saved.getProjectId())
+                .projectName(saved.getProjectName())
+                .createDate(saved.getCreateDate())
+                .build();
+    }
 
 	/* 프로젝트 삭제 */
 	@Transactional

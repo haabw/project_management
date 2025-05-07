@@ -30,14 +30,32 @@ public class ProjectEntity {
 	@Builder.Default
 	@OneToMany(mappedBy = "project", cascade = CascadeType.REMOVE, orphanRemoval = true)
 	private List<ProjectMemberEntity> members = new ArrayList<>();
+	
+	@Builder.Default
+	    @OneToMany(mappedBy = "project", cascade = CascadeType.REMOVE, orphanRemoval = true)
+	    private List<ChatEntity> chatMessages = new ArrayList<>();
+	
+	@Builder.Default
+	@OneToMany(mappedBy = "project", cascade = CascadeType.REMOVE, orphanRemoval = true)
+	private List<TaskEntity> tasks = new ArrayList<>();
 
-	public ProjectEntity(int projectId, String projectName, LocalDateTime createDate,
-			List<ProjectMemberEntity> members) {
+	public ProjectEntity(int projectId, String projectName, LocalDateTime createDate, List<ProjectMemberEntity> members,
+			List<ChatEntity> chatMessages,
+			List<TaskEntity> tasks) {
 		super();
 		this.projectId = projectId;
 		this.projectName = projectName;
 		this.createDate = createDate;
 		this.members = members;
+		this.chatMessages = chatMessages;
+		this.tasks = tasks;
 	}
+	
+
+	// 세터 추가
+    public void setProjectName(String projectName) {
+        this.projectName = projectName;
+    }
+	
 
 }
