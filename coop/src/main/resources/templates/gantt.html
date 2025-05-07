@@ -62,18 +62,29 @@
 
 
 <script type="text/javascript">
+var userList = [];
 //GanttMaster 객체 초기화 및 간트 차트 로딩
 var ge;
 $(function() {
+	
 	  var canWrite = true;
 	  ge = new GanttMaster();	// Gantt 차트 메인 컨트롤 객체 생성
 	  ge.set100OnClose = true;  // 하위 작업이 닫힐 때 100%로 표시
 	  ge.shrinkParent = true;	// 부모 작업의 날짜를 자식에 맞춰 자동 조정
 	  ge.init($("#workSpace")); // 실제 차트가 들어갈 DOM 영역 초기화
+	  const urlParams = new URLSearchParams(window.location.search);
+	  const CURRENT_PROJECT_ID = parseInt(urlParams.get("projectId"));
+
+	  fetch(`/api/tasks/users?projectId=${CURRENT_PROJECT_ID}`)
+	    .then(res => res.json())
+	    .then(data => {
+	      userList = data; // 닉네임 목록
+	    })
+	    .catch(err => {
+	      console.error("사용자 목록 로딩 실패:", err);
+	    });
 	  loadI18n();				// 다국어 메시지 설정
 	  delete ge.gantt.zoom;		// 줌 기능 제거
-	  // URL에서 projectId 추출
-	  const urlParams = new URLSearchParams(window.location.search);
 	  const projectId = urlParams.get("projectId");
 	  // 서버에서 해당 프로젝트의 작업(Task) 데이터 가져오기
 	  fetch(`/api/tasks?projectId=${projectId}`)
@@ -82,6 +93,24 @@ $(function() {
 	      return res.json();
 	    })
 	    .then(data => {
+	    	data.forEach(task => {
+	    	      task.start = task.start ? new Date(task.start) : null;
+	    	      task.end = task.end ? new Date(task.end) : null;
+	    	      task.status = task.status || "STATUS_ACTIVE";
+		    	  task.duration = task.duration || 1;
+
+		    	  if (Array.isArray(task.workerId)) {
+		    	    task.code = task.workerId
+		    	      .map(id => {
+		    	        const user = userList.find(u => u.id === id);
+		    	        return user ? user.name : "";
+		    	      })
+		    	      .filter(Boolean)
+		    	      .join(", ");
+		    	  }
+	    	    });
+	  
+	    	
 	    // 가져온 데이터를 간트 차트에 로딩
 	      const project = {
 	    	tasks: data || [],  // 작업 목록
@@ -125,21 +154,18 @@ function saveGanttOnServer() {
 	  const prj = ge.saveProject(); 	// 현재 간트 차트 상태를 가져옴
 	  const urlParams = new URLSearchParams(window.location.search);
 	  const CURRENT_PROJECT_ID = parseInt(urlParams.get("projectId"));
-	  
-	  function formatDate(dateValue) {
-		  if (!dateValue) return null;
-		  const date = new Date(dateValue);
-		  if (isNaN(date.getTime())) return null;
-		  return date.toISOString().split("T")[0];
-		}
-
+	  // 날짜 형식을 yyyy-MM-dd로 변환하는 함수
+	  function formatDate(dateString) {
+	    if (!dateString) return null;
+	    const date = new Date(dateString);
+	    return date.toISOString().split("T")[0];
+	  }
 	  // 서버에 저장된 기존 작업 리스트 가져오기
 	  fetch(`/api/tasks?projectId=${CURRENT_PROJECT_ID}`)
 	    .then(res => res.json())
 	    .then(serverTasks => {
 	      const serverIds = serverTasks.map(t => t.id); // 서버에 있는 ID
 	      const clientIds = prj.tasks.map(t => t.id);   // 클라이언트에 있는 ID
-	      console.log("task.id 목록", clientIds);
 	      // 클라이언트에서 지워진 작업은 서버에서도 삭제
 	      serverIds.forEach(id => {
 	        if (!clientIds.includes(id)) {
@@ -163,9 +189,9 @@ function saveGanttOnServer() {
 	          duration: task.duration || 1,
 	          progress: parseInt(task.progress) || 0,
 	          status: task.status || "진행중",
-	          parentId: task.parent || null,
-	          assigneeId: 1,
-	          projectId: CURRENT_PROJECT_ID
+	          priority: task.priority || "보통",
+	          projectId: CURRENT_PROJECT_ID,
+	          workerId: task.workerId || []
 	        };
 
 	        fetch("/api/tasks", {
@@ -183,14 +209,10 @@ function saveGanttOnServer() {
 	          console.error("저장 실패:", error);
 	        });
 	      });
-
+	   	  
 	      alert("저장 완료");
 	    });
 	}
-
-
-
-
 
 function download(data, filename, type) {
   var file = new Blob([data], {type: type});
@@ -257,12 +279,12 @@ function saveInLocalStorage() {
 <div id="gantEditorTemplates" style="display:none;">
 <div class="__template__" type="GANTBUTTONS">
   <!--
-  <div class="ganttButtonBar noprint">
-    <div class="buttons">
-      <button onclick="addNewTask()" style="margin: 10px; padding: 6px 12px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
-  작업 추가
+  <div class="ganttButtonBar noprint" style="display: flex; align-items: center; padding: 10px; gap: 10px;">
+    <div class="buttons" style="display: flex; align-items: center; gap: 10px;">
+      <button onclick="addNewTask()" style="padding: 6px 12px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
+      작업 추가
 </button>
-      
+<span class="ganttButtonSeparator"></span>
       <button onclick="$('#workSpace').trigger('undo.gantt');return false;" class="button textual icon requireCanWrite" title="undo"><span class="teamworkIcon">&#39;</span></button>
       <button onclick="$('#workSpace').trigger('redo.gantt');return false;" class="button textual icon requireCanWrite" title="redo"><span class="teamworkIcon">&middot;</span></button>
       <span class="ganttButtonSeparator requireCanWrite requireCanAdd"></span>
@@ -274,22 +296,19 @@ function saveInLocalStorage() {
       
       <button onclick="$('#workSpace').trigger('zoomMinus.gantt'); return false;" class="button textual icon " title="zoom out"><span class="teamworkIcon">)</span></button>
       <button onclick="$('#workSpace').trigger('zoomPlus.gantt');return false;" class="button textual icon " title="zoom in"><span class="teamworkIcon">(</span></button>
-    <span class="ganttButtonSeparator"></span>
+      <span class="ganttButtonSeparator"></span>
       <button onclick="ge.splitter.resize(.1);return false;" class="button textual icon" ><span class="teamworkIcon">F</span></button>
       <button onclick="ge.splitter.resize(50);return false;" class="button textual icon" ><span class="teamworkIcon">O</span></button>
       <button onclick="ge.splitter.resize(100);return false;" class="button textual icon"><span class="teamworkIcon">R</span></button>
       <span class="ganttButtonSeparator"></span>
       <button onclick="ge.element.toggleClass('colorByStatus' );return false;" class="button textual icon"><span class="teamworkIcon">&sect;</span></button>
-      
+      <button onclick="saveAsCustomText();" class="button first big requireWrite" title="Export" style="background-color: #28a745; color: white; border: none; border-radius: 4px; padding: 8px 16px; cursor: pointer;">
+      Save
+	  </button>
+	  <span class="ganttButtonSeparator"></span>
+      <button onclick='newProject();' class='button requireWrite newproject' style="background-color: #2c3e50; color: white; border: none; border-radius: 4px; padding: 8px 16px; cursor: pointer;" ><em>clear project</em></button>
+   
     </div>
-
-    <div>
-      <button onclick="saveAsCustomText();" class="button first big requireWrite" title="Export" style="background-color: #007bff; color: white; border: none; border-radius: 4px; padding: 8px 16px; cursor: pointer;">
-  Save
-</button>
-      <button onclick='newProject();' class='button requireWrite newproject'><em>clear project</em></button>
-      </div>
-  </div>
   -->
 </div>
 
@@ -298,8 +317,8 @@ function saveInLocalStorage() {
     <thead>
     <tr style="height:40px">
       <th class="gdfColHeader" style="width:30px; border-right: none">ID</th>
-      <th class="gdfColHeader" style="width:35px;">상태</th>
-      <th class="gdfColHeader gdfResizable" style="width:100px;">작업자 이름</th>
+      <th class="gdfColHeader" style="width:40px;">상태</th>
+      <th class="gdfColHeader gdfResizable" style="width:120px;">작업자 선택</th>
       <th class="gdfColHeader gdfResizable" style="width:300px;">작업 이름</th>
       <th class="gdfColHeader gdfResizable" style="width:80px;">시작 날짜</th>
       <th class="gdfColHeader gdfResizable" style="width:80px;">완료 날짜</th>
@@ -316,7 +335,7 @@ function saveInLocalStorage() {
   <tr id="tid_(#=obj.id#)" taskId="(#=obj.id#)" class="taskEditRow (#=obj.isParent()?'isParent':''#) (#=obj.collapsed?'collapsed':''#)" level="(#=level#)">
     <th class="gdfCell" align="right"><span class="taskRowIndex">(#=obj.getRow()+1#)</span></th>
     <td class="gdfCell noClip" align="center"><div class="taskStatus cvcColorSquare" status="(#=obj.status#)"></div></td>
-    <td class="gdfCell"><input type="text" name="code" value="(#=obj.code?obj.code:''#)" placeholder="작업자 이름"></td>
+    <td class="gdfCell"><input type="text" name="selector" value="" placeholder="작업자 선택"></td>
     <td class="gdfCell indentCell" style="padding-left:(#=obj.level*10+18#)px;">
       <div class="exp-controller" align="center"></div>
       <input type="text" name="name" value="(#=obj.name#)" placeholder="name">
@@ -511,6 +530,84 @@ function convertToText(project) {
 	  const text = convertToText(project);
 	  downloadText(text, filename, "text/plain");
 	}
+	// 우선순위 셀에서 변경사항을 task에 반영
+	$(document).on("change", 'select[name="priority"]', function () {
+		  const row = $(this).closest("tr");
+		  const taskId = row.attr("taskId");
+		  const task = ge.getTask(taskId);
+		  if (task) {
+		    task.priority = $(this).val();
+		  }
+		});
+
+	$(document).on("click", "input[name='selector']", function (e) {
+		  const input = e.target;
+
+		  let dropdown = document.getElementById("assignee-dropdown");
+		  if (dropdown) dropdown.remove();
+
+		  dropdown = document.createElement("ul");
+		  dropdown.id = "assignee-dropdown";
+		  dropdown.style.position = "absolute";
+		  dropdown.style.background = "#fff";
+		  dropdown.style.border = "1px solid #ccc";
+		  dropdown.style.padding = "5px";
+		  dropdown.style.zIndex = "10000";
+		  dropdown.style.listStyle = "none";
+		  dropdown.style.maxHeight = "150px";
+		  dropdown.style.overflowY = "auto";
+
+		  const rect = input.getBoundingClientRect();
+		  dropdown.style.left = `${rect.left + window.scrollX}px`;
+		  dropdown.style.top = `${rect.bottom + window.scrollY}px`;
+
+		  userList.forEach(user => {
+		    const li = document.createElement("li");
+		    li.textContent = user.name;
+		    li.dataset.id = user.id;
+		    li.className = "user";
+		    li.style.cursor = "pointer";
+		    li.style.padding = "4px";
+		    li.addEventListener("click", () => {
+		      const current = input.value.split(",").map(s => s.trim()).filter(Boolean);
+		      if (!current.includes(user.name)) {
+		        current.push(user.name);
+		        input.value = current.join(", ");
+		      }
+
+		      const row = input.closest("tr");
+		      const taskId = row.getAttribute("taskId");
+		      const task = ge.getTask(taskId);
+		      if (task) {
+		        if (!Array.isArray(task.workerId)) task.workerId = [];
+		        if (!task.workerId.includes(user.id)) task.workerId.push(user.id);
+		      }
+		      const codeInput = row.querySelector("input[name='code']");
+		      if (codeInput) {
+		        const codeCurrent = codeInput.value.split(",").map(s => s.trim()).filter(Boolean);
+		        if (!codeCurrent.includes(user.name)) {
+		          codeCurrent.push(user.name);
+		          codeInput.value = codeCurrent.join(", ");
+		        }
+		      }
+
+		      dropdown.remove();
+		    });
+
+		    dropdown.appendChild(li);
+		  });
+
+		  document.body.appendChild(dropdown);
+		});
+
+		// 외부 클릭 시 드롭다운 닫기
+		$(document).on("click", function (e) {
+			if (!e.target.matches("input[name='selector']")) {
+		    const dropdown = document.getElementById("assignee-dropdown");
+		    if (dropdown) dropdown.remove();
+		  }
+		});
+
 </script>
 </main>
 </body>
