@@ -1,6 +1,7 @@
 package com.coop.controller;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,8 +22,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam; // 추가!
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.GetMapping; // 추가
+import org.springframework.web.bind.annotation.RequestParam; // 추가!
+import jakarta.persistence.EntityNotFoundException; // <--- EntityNotFoundException 임포트 추가!
+import org.springframework.security.access.AccessDeniedException; // AccessDeniedException 추가
 
 import com.coop.dto.ProjectDTO;
 import com.coop.entity.ProjectEntity;                    // ← 추가된 import
@@ -34,7 +38,6 @@ import com.coop.service.ProjectService;
 import com.coop.service.UserService;                     // ← 추가된 import
 
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityNotFoundException; // <--- EntityNotFoundException 임포트 추가!
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 
@@ -165,35 +168,15 @@ public class MainController {
     }
 
     @GetMapping("/projects/list")
-        @ResponseBody
-        public List<ProjectDTO> list(Authentication authentication) {
-    	// 1) 로그인한 사용자 이름 가져오기 (한 번만 선언)
-    	    String username = authentication.getName();
-    	    
-    	    // 2) 서비스에 username 넘겨서 조회
-    	    return projectService.getMyApprovedProjects(username);
+    @ResponseBody
+    public List<ProjectDTO> list() {
+        return projectService.getAllProjects();
     }
 
-    /** 프로젝트 이름 수정 */
     @PutMapping("/projects/update")
     @ResponseBody
-    public ResponseEntity<ProjectDTO> updateProject(
-            @RequestBody Map<String, String> payload,
-            Authentication authentication) {
-
-        // 1) 로그인 사용자 조회
-        String username = authentication.getName();
-        UserEntity user = userService.findByUsername(username)
-            .orElseThrow(() -> new RuntimeException("로그인된 사용자 정보가 없습니다."));
-
-        // 2) 요청 데이터 파싱
-        int projectId = Integer.parseInt(payload.get("projectId"));
-        String newName  = payload.get("projectName");
-
-        // 3) 수정 (Service 레벨에서 권한 체크 추가 가능)
-        ProjectDTO updated = projectService.updateProjectName(projectId, newName);
-
-        return ResponseEntity.ok(updated);
+    public ProjectDTO update(@RequestBody ProjectDTO projectDTO) {
+        return projectService.updateProject(projectDTO.getProjectId(), projectDTO);
     }
 
     @DeleteMapping("/projects/delete/{id}")
@@ -229,11 +212,20 @@ public class MainController {
             ProjectEntity project = projectService.findById(projectId)
                     .orElseThrow(() -> new EntityNotFoundException("프로젝트를 찾을 수 없습니다. ID: " + projectId));
 
-            // [보안 강화 제안] TODO: 현재 로그인한 사용자가 이 프로젝트의 멤버인지 확인하는 로직 추가
-            // boolean isMember = projectService.isUserMemberOfProject(currentUser.getId(), projectId);
-            // if (!isMember) {
-            //     throw new AccessDeniedException("해당 프로젝트에 접근 권한이 없습니다.");
-            // }
+            // 3. ★★★ 추가된 보안 로직 시작 ★★★
+            // 현재 로그인한 사용자가 이 프로젝트의 멤버인지 확인
+            ProjectRole userRoleInProject = userService.getProjectRole(currentUser.getId(), projectId);
+            if (userRoleInProject == null) {
+                // 사용자가 해당 프로젝트의 멤버가 아니거나 역할이 없는 경우 접근 거부
+                // 실제 운영 환경에서는 로깅을 통해 접근 시도 기록을 남기는 것이 좋습니다.
+                logger.warn("사용자 {}가 권한 없는 프로젝트 {}의 채팅방 접근 시도.", currentLoginId, projectId);
+                // 예를 들어, 접근 거부 예외를 발생시키거나, 에러 페이지로 리다이렉트합니다.
+                // 여기서는 AccessDeniedException을 발생시켜 Spring Security의 기본 에러 처리 또는 @ControllerAdvice를 통해 처리하도록 합니다.
+                // 또는 model.addAttribute("errorMessage", "해당 프로젝트 채팅방에 접근할 권한이 없습니다."); return "error/403"; // 과 같이 처리 가능
+                 throw new AccessDeniedException("해당 프로젝트 채팅방에 접근할 권한이 없습니다.");
+            }
+            // ★★★ 추가된 보안 로직 종료 ★★★
+
 
             // 3. Model 객체에 View(chat.html) 렌더링에 필요한 데이터 담기
             model.addAttribute("projectId", projectId);          // 프로젝트 ID
@@ -243,19 +235,24 @@ public class MainController {
 
             // 4. chat.html 템플릿 반환
             return "chat";
-
         } catch (EntityNotFoundException e) {
             // 사용자를 찾지 못하거나 프로젝트를 찾지 못한 경우 (404 Not Found 와 유사)
             System.err.println("채팅 페이지 접근 오류: " + e.getMessage());
             model.addAttribute("errorMessage", e.getMessage());
             return "error/404"; // templates/error/404.html 반환 (경로 확인 필요)
+        } catch (AccessDeniedException e) { // 추가된 예외 처리
+            System.err.println("채팅 페이지 접근 거부: " + e.getMessage());
+            model.addAttribute("errorMessage", "해당 채팅방에 접근할 권한이 없습니다.");
+            // return "error/403"; // 권한 없음 에러 페이지 (필요시 생성) 또는
+            return "redirect:/index?error=chatAccessDenied"; // 인덱스 페이지로 리다이렉트하며 파라미터 전달
         } catch (Exception e) {
              // 기타 예상치 못한 서버 오류
              System.err.println("채팅 페이지 로딩 중 오류 발생: " + e.getMessage());
              e.printStackTrace(); // 개발 중 상세 스택 트레이스 출력
              model.addAttribute("errorMessage", "채팅 페이지 로딩 중 오류가 발생했습니다.");
              return "error/500"; // templates/error/500.html 반환 (경로 확인 필요)
-        }
+        }	
+
     }
 
 }
