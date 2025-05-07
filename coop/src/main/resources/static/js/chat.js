@@ -203,13 +203,88 @@ function onConnected() {
  * WebSocket 연결 실패 시 실행될 콜백 함수
  */
 function onError(error) {
-    console.error('WebSocket 연결 실패:', error);
-    connectingElement.textContent = '연결 실패! 인터넷 연결을 확인하거나 새로고침 해주세요.';
-    connectingElement.style.color = 'red';
-    // 입력/전송 버튼 비활성화
-    messageInput.disabled = true;
-    sendButton.disabled = true;
-    alert("채팅 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.");
+    console.log("onError 콜백 수신됨. 오류 타입: " + typeof error);
+    
+    // 변수 선언을 함수 최상단으로 이동하고 초기화
+    let detailedErrorMessage = "알 수 없는 오류 발생"; // 기본값
+    let alertMessageToUser = "채팅 서버와 통신 중 문제가 발생했습니다. 관리자에게 문의하세요."; // alert을 위한 기본 메시지
+    let isAuthorizationError = false;
+
+    if (typeof error === 'object' && error !== null) {
+        if (error.command === "ERROR" && error.headers && error.headers.message) {
+            console.log("STOMP ERROR 프레임 헤더:", error.headers);
+            console.log("STOMP ERROR 프레임 바디:", error.body);
+            detailedErrorMessage = error.headers.message; // 서버가 전달한 메시지
+            if (error.body) {
+                detailedErrorMessage += "\n상세: " + error.body;
+            }
+        } else if (error.message) { // 일반 JS 오류 객체
+            console.log("일반 JavaScript 오류 객체:", error);
+            detailedErrorMessage = error.message;
+        } else {
+            console.log("알 수 없는 오류 객체 구조:", error);
+            // detailedErrorMessage는 이미 "알 수 없는 오류 발생"으로 초기화됨
+        }
+    } else if (typeof error === 'string') {
+        console.log("오류 메시지 (문자열):", error);
+        detailedErrorMessage = error; // 문자열 오류 메시지 사용
+    }
+
+    console.log("서버로부터 수신된 최종 상세 메시지: " + detailedErrorMessage);
+
+    // detailedErrorMessage 내용을 기반으로 alertMessageToUser 설정
+    if (detailedErrorMessage) { // detailedErrorMessage가 null이나 undefined가 아닌지 확인
+        if (detailedErrorMessage.includes("구독할 권한이 없습니다") ||  // CustomStompErrorHandler가 성공적으로 메시지를 변경했을 경우를 대비
+            detailedErrorMessage.includes("AccessDeniedException") ||
+            detailedErrorMessage.includes("프로젝트") && detailedErrorMessage.includes("멤버가 아닙니다")) { // SubscriptionAuthInterceptor의 로그 메시지 일부 포함
+            alertMessageToUser = "채팅방 참여 권한이 없습니다. 프로젝트 관리자에게 문의하거나, 프로젝트 멤버인지 확인해주세요.";
+            isAuthorizationError = true;
+        } else if (detailedErrorMessage.includes("Whoops! Lost connection")) {
+            // 중복 알림 방지를 위해 isAuthorizationError 플래그 확인
+            if (!isAuthorizationError) { 
+                 alertMessageToUser = "서버와의 연결이 끊어졌습니다. 페이지를 새로고침 해주세요.";
+            } else {
+                // 이미 권한 오류 알림이 표시된 경우, 연결 끊김 알림은 생략
+                console.warn("연결 끊김 오류 발생, 하지만 이미 권한 오류가 처리됨.");
+                alertMessageToUser = null; // alert 안 띄우도록 설정
+            }
+        } else if (detailedErrorMessage.includes("Failed to send message to ExecutorSubscribableChannel")) {
+            // 이 메시지는 사용자에게 직접적인 원인을 알려주지 못하므로, 좀 더 일반적인 메시지로 대체
+            alertMessageToUser = "채팅 채널 구독에 실패했습니다. 권한을 확인하거나 잠시 후 다시 시도해주세요.";
+            // 이 경우 isAuthorizationError를 true로 설정할 수도 있음 (상황에 따라)
+            // isAuthorizationError = true; 
+        } else {
+            // 기타 오류 (위에서 잡히지 않은 detailedErrorMessage의 경우)
+            // alertMessageToUser는 이미 "채팅 서버와 통신 중 문제가 발생했습니다..."로 초기화 되어 있음
+            // 혹은 detailedErrorMessage를 일부 포함하여 보여줄 수 있음 (너무 기술적이지 않게)
+            // alertMessageToUser = `채팅 오류: ${detailedErrorMessage.substring(0, 100)}`; 
+        }
+    }
+    
+    // UI 업데이트
+    if (connectingElement) { // connectingElement가 존재하는지 확인
+        if (isAuthorizationError) {
+            connectingElement.textContent = "채팅방 참여 권한 없음.";
+        } else if (detailedErrorMessage && detailedErrorMessage.includes("Whoops! Lost connection")) {
+            connectingElement.textContent = "서버 연결 끊김.";
+        } else {
+            connectingElement.textContent = "채팅 연결 오류.";
+        }
+        connectingElement.style.color = 'red';
+        connectingElement.style.display = 'block';
+    }
+
+    if (messageInput) messageInput.disabled = true;
+    if (sendButton) sendButton.disabled = true;
+
+    // alertMessageToUser가 null이 아닐 때만 alert 표시
+    if (alertMessageToUser) {
+        alert(alertMessageToUser);
+        if(isAuthorizationError) {
+            // 중복 알림 방지 플래그 같은 것을 사용할 수 있지만,
+            // 현재는 단순히 isAuthorizationError로 제어
+        }
+    }
 }
 
 // --- 메시지 전송 및 수신 ---
