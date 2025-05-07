@@ -1,47 +1,98 @@
 package com.coop.controller;
 
 import com.coop.dto.ChatDTO;
+import com.coop.entity.ProjectEntity; // ProjectEntity 임포트
+import com.coop.entity.ProjectMemberEntity; // ProjectMemberEntity 임포트
 import com.coop.entity.UserEntity;
+import com.coop.repository.ProjectMemberRepository; // ProjectMemberRepository 임포트
+import com.coop.repository.ProjectRepository; // ProjectRepository 임포트
 import com.coop.service.ChatService;
 import com.coop.service.UserService;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity; // ResponseEntity 사용
+import org.springframework.http.HttpStatus; // HttpStatus 임포트
+import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.stereotype.Controller; // @Controller 사용
-import org.springframework.web.bind.annotation.GetMapping; // GetMapping 사용
-import org.springframework.web.bind.annotation.PathVariable; // PathVariable 사용
-import org.springframework.web.bind.annotation.ResponseBody; // @ResponseBody 사용
+import org.springframework.security.access.AccessDeniedException; // AccessDeniedException 임포트
+import org.springframework.security.core.annotation.AuthenticationPrincipal; // 현재 사용자 정보 가져오기 위해
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List; // List 사용
+import java.util.Collections; // Collections 임포트
+import java.util.List;
 
-@Controller // WebSocket 메시지 처리와 REST API 엔드포인트를 함께 제공
+import com.coop.entity.UserEntity;
+import com.coop.service.UserService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException; // 예외 임포트
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import java.util.Collections;
+import java.util.List;
+
+
+@Controller
 @RequiredArgsConstructor
 public class ChatController {
 
-    private final SimpMessagingTemplate messagingTemplate; // WebSocket 메시지 전송용 템플릿
-    private final ChatService chatService;             // 채팅 관련 비즈니스 로직 처리
-    private final UserService userService;             // 사용자 정보 조회용 서비스
+    private final SimpMessagingTemplate messagingTemplate;
+    private final ChatService chatService;
+    private final UserService userService;
+    private final ProjectRepository projectRepository;
+    private final ProjectMemberRepository projectMemberRepository;
 
-    // 클라이언트에 표시될 날짜/시간 형식
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     /**
-     * WebSocket을 통해 클라이언트로부터 메시지를 수신하고 처리합니다.
-     * 수신 경로: /app/chat.sendMessage/{projectId} (WebSocketConfig 설정과 일치)
-     *
-     * @param projectId 메시지가 속한 프로젝트 ID (경로 변수)
-     * @param chatDTO   클라이언트가 보낸 메시지 데이터 (JSON -> ChatDTO 자동 변환)
+     * 사용자가 특정 프로젝트의 승인된 멤버인지 확인합니다.
+     * @param userId 확인할 사용자 ID
+     * @param projectId 확인할 프로젝트 ID
+     * @return 멤버이면 true, 아니면 false
      */
-    @MessageMapping("/chat.sendMessage/{projectId}") // WebSocket 메시지 매핑
+    private boolean isUserApprovedMemberOfProject(String userIdStr, String projectIdStr) {
+        try {
+            Long userId = Long.parseLong(userIdStr);
+            Integer projectId = Integer.parseInt(projectIdStr);
+
+            UserEntity user = userService.findById(userId.intValue())
+                    .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다. ID: " + userId));
+            ProjectEntity project = projectRepository.findById(projectId)
+                    .orElseThrow(() -> new EntityNotFoundException("프로젝트를 찾을 수 없습니다. ID: " + projectId));
+
+            return projectMemberRepository.existsByUserAndProjectAndStatus(
+                    user, project, ProjectMemberEntity.ProjectStatus.APPROVED);
+        } catch (NumberFormatException | EntityNotFoundException e) {
+            System.err.println("프로젝트 멤버 확인 중 오류: " + e.getMessage());
+            return false;
+        }
+    }
+
+    @MessageMapping("/chat.sendMessage/{projectId}")
     public void sendMessage(@DestinationVariable String projectId, @Payload ChatDTO chatDTO) {
-        // 1. 발신자 이름 설정 (DB 조회)
+        // 0. 사용자 권한 확인 (프로젝트 멤버인지)
+        if (!isUserApprovedMemberOfProject(chatDTO.getSenderId(), projectId)) {
+            System.err.println("권한 없음: 사용자 " + chatDTO.getSenderId() + "는 프로젝트 " + projectId + "의 멤버가 아닙니다. (sendMessage)");
+            // 여기에 특정 사용자에게 오류 메시지를 보내는 로직을 추가할 수 있으나, STOMP에서는 복잡할 수 있습니다.
+            // 현재는 단순히 메시지 처리를 중단합니다.
+            return;
+        }
+
+        // 1. 발신자 이름 설정
         try {
             Long userId = Long.parseLong(chatDTO.getSenderId());
             UserEntity sender = userService.findById(userId.intValue())
@@ -49,83 +100,98 @@ public class ChatController {
             chatDTO.setSenderName(sender.getNickname());
         } catch (NumberFormatException e) {
             System.err.println("잘못된 사용자 ID 형식: " + chatDTO.getSenderId());
-            chatDTO.setSenderName("Unknown User"); // 예외 발생 시 기본 이름
+            chatDTO.setSenderName("Unknown User");
         } catch (Exception e) {
             System.err.println("발신자 정보 조회 오류: " + e.getMessage());
-            chatDTO.setSenderName("Error User"); // 예외 발생 시 기본 이름
+            chatDTO.setSenderName("Error User");
         }
 
-        // 2. 서버 시간으로 타임스탬프 설정 (클라이언트 시간 불신)
         chatDTO.setTimestamp(LocalDateTime.now().format(formatter));
-
-        // 3. 메시지 타입 및 프로젝트 ID 설정 (경로 변수 값 사용)
         chatDTO.setType(ChatDTO.MessageType.TALK);
         chatDTO.setProjectId(projectId);
 
-        // 4. 메시지를 DB에 저장 (ChatService 호출)
-        ChatDTO savedMessage = chatService.saveMessage(chatDTO);
-
-        // 5. 해당 프로젝트 구독자들에게 메시지 브로드캐스트
-        // 전송 경로: /topic/chat/project/{projectId} (WebSocketConfig 설정과 일치)
-        String destination = "/topic/chat/project/" + projectId;
-        messagingTemplate.convertAndSend(destination, savedMessage); // 저장된 메시지(ID, timestamp 포함) 전송
+        try {
+            ChatDTO savedMessage = chatService.saveMessage(chatDTO); // ChatService의 saveMessage는 이미 내부에서 권한 검사를 수행 (선택적 중복 검사)
+            String destination = "/topic/chat/project/" + projectId;
+            messagingTemplate.convertAndSend(destination, savedMessage);
+        } catch (AccessDeniedException e) {
+            System.err.println("메시지 저장 실패 (권한 없음): " + e.getMessage());
+            // 이 경우에도 특정 사용자에게 오류를 보내는 것을 고려할 수 있습니다.
+        } catch (Exception e) {
+            System.err.println("메시지 처리 중 오류 발생: " + e.getMessage());
+        }
     }
 
-    /**
-     * WebSocket을 통해 사용자의 채팅방 입장을 처리합니다. (선택적 기능)
-     * 수신 경로: /app/chat.addUser/{projectId}
-     *
-     * @param projectId 입장하는 프로젝트 ID
-     * @param chatDTO   입장 사용자 정보 (senderId 포함)
-     */
     @MessageMapping("/chat.addUser/{projectId}")
     public void addUser(@DestinationVariable String projectId, @Payload ChatDTO chatDTO) {
-        // 1. 발신자 이름 조회 (DB 조회)
+        // 0. 사용자 권한 확인 (프로젝트 멤버인지)
+        if (!isUserApprovedMemberOfProject(chatDTO.getSenderId(), projectId)) {
+            System.err.println("권한 없음: 사용자 " + chatDTO.getSenderId() + "는 프로젝트 " + projectId + "의 멤버가 아닙니다. (addUser)");
+            return; // 멤버가 아니면 입장 메시지 처리 안 함
+        }
+
+        // 1. 발신자 이름 조회
         String senderName = "Unknown User";
         try {
             Long userId = Long.parseLong(chatDTO.getSenderId());
             senderName = userService.findById(userId.intValue())
-                    .map(UserEntity::getNickname) // Optional<UserEntity>에서 닉네임 추출
-                    .orElse("Unknown User"); // 사용자가 없으면 기본 이름
+                    .map(UserEntity::getNickname)
+                    .orElse("Unknown User");
         } catch(NumberFormatException e) {
             System.err.println("AddUser - 잘못된 사용자 ID 형식: " + chatDTO.getSenderId());
         } catch (Exception e) {
             System.err.println("AddUser - 발신자 정보 조회 오류: " + e.getMessage());
         }
 
-        // 2. 입장 메시지 설정
         chatDTO.setSenderName(senderName);
         chatDTO.setMessage(senderName + " 님이 입장하셨습니다.");
         chatDTO.setType(ChatDTO.MessageType.ENTER);
         chatDTO.setTimestamp(LocalDateTime.now().format(formatter));
         chatDTO.setProjectId(projectId);
 
-        // 3. 해당 프로젝트 구독자들에게 입장 메시지 브로드캐스트
         String destination = "/topic/chat/project/" + projectId;
         messagingTemplate.convertAndSend(destination, chatDTO);
     }
 
-    /**
-     * (REST API) 특정 프로젝트의 채팅 기록을 반환하는 엔드포인트.
-     * 클라이언트(JavaScript)가 페이지 로드 시 호출합니다.
-     * 경로: /api/chat/history/{projectId}
-     *   
-     @param //projectId 조회할 프로젝트 ID (URL 경로 변수)
-     @return //해당 프로젝트의 채팅 기록 리스트 (JSON 형식으로 자동 변환)
-  */
     @GetMapping("/api/chat/history/{projectId}")
-    @ResponseBody // 이 메서드의 반환값을 HTTP 응답 본문(body)에 직접 쓰도록 지시 (JSON 반환)
-    public ResponseEntity<List<ChatDTO>> getChatHistory(@PathVariable("projectId") Integer projectId) {
+    @ResponseBody
+    public ResponseEntity<List<ChatDTO>> getChatHistory(
+            @PathVariable("projectId") Integer projectId,
+            @AuthenticationPrincipal UserDetails currentUserDetails
+    ) {
+        if (currentUserDetails == null) {
+            System.err.println("채팅 기록 조회 실패: 인증되지 않은 사용자입니다. (currentUserDetails is null)");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Collections.emptyList());
+        }
+
+        UserEntity currentUser;
         try {
-            List<ChatDTO> history = chatService.getChatHistory(projectId);
-            return ResponseEntity.ok(history); // 성공 시 200 OK 와 함께 채팅 기록 반환
+            String username = currentUserDetails.getUsername();
+            // userService.findByUsername(String) 호출로 변경하고, Optional 처리
+            currentUser = userService.findByUsername(username)
+                    .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + username));
+        } catch (UsernameNotFoundException e) { // 구체적인 예외 처리
+            System.err.println("채팅 기록 조회 실패: 사용자 정보를 가져오는 중 오류 발생 (사용자 없음). " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Collections.emptyList()); // 사용자를 못찾으면 권한 없음 처리
+        } catch (Exception e) { // 그 외 예외
+            System.err.println("채팅 기록 조회 실패: 사용자 정보를 가져오는 중 알 수 없는 오류 발생. " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Collections.emptyList());
+        }
+
+        try {
+            List<ChatDTO> history = chatService.getChatHistory(projectId, currentUser);
+            return ResponseEntity.ok(history);
         } catch (EntityNotFoundException e) {
-            // 프로젝트 ID가 잘못된 경우 등
-            System.err.println("채팅 기록 조회 실패: " + e.getMessage());
-            return ResponseEntity.notFound().build(); // 404 Not Found 응답
+            System.err.println("채팅 기록 조회 실패 (엔티티 없음): " + e.getMessage());
+            return ResponseEntity.notFound().build();
+        } catch (AccessDeniedException e) {
+            System.err.println("채팅 기록 조회 실패 (권한 없음): " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Collections.emptyList());
         } catch (Exception e) {
             System.err.println("채팅 기록 조회 중 서버 오류 발생: " + e.getMessage());
-            return ResponseEntity.internalServerError().build(); // 500 Internal Server Error 응답
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
         }
     }
 }
