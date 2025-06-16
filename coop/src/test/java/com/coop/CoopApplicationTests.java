@@ -7,6 +7,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 class CoopApplicationTests {
     @Test
     void contextLoads() {
-        // 애플리케이션 컨텍스트 로드 테스트 잉
+        // 애플리케이션 컨텍스트 로드 테스트
     }
 }
